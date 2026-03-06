@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>122JM Passengers — Pilatus PC-12</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>(function(){ var t=localStorage.getItem('122jm_theme')||'dark'; document.documentElement.setAttribute('data-theme',t); })();</script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="tail-number">N122JM</span>
+        <div class="header-subtitle">
+          <span>2015 Pilatus PC-12</span><span class="sep">·</span><span>Passengers</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme" class="btn btn-ghost btn-sm">&#9790;</button>
+        <button id="btn-add-pax" class="btn btn-primary" disabled>+ Add Passenger</button>
+        <div id="auth-section">
+          <button id="btn-signin" class="btn btn-secondary">Sign in with Google</button>
+          <button id="btn-signout" class="btn btn-ghost" style="display:none;">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="app-nav">
+    <a href="index.html"      class="nav-tab">&#9992; Flight Log</a>
+    <a href="contacts.html"   class="nav-tab">&#9742; Contacts</a>
+    <a href="passengers.html" class="nav-tab active">Passengers</a>
+    <a href="notes.html"      class="nav-tab">Notes</a>
+  </nav>
+
+  <main class="app-main" id="app-main">
+
+    <div id="auth-prompt" class="auth-prompt">
+      <div class="auth-card">
+        <div class="auth-icon">&#9992;</div>
+        <h2>122JM Passengers</h2>
+        <p>Sign in with a partner Google account to access the passenger directory.</p>
+        <button id="btn-signin-card" class="btn btn-primary btn-lg">Sign in with Google</button>
+      </div>
+    </div>
+
+    <div id="app-content" style="display:none;">
+
+      <!-- Controls -->
+      <section class="contacts-controls" style="margin-bottom:16px;">
+        <div class="contacts-controls-left">
+          <input type="text" id="pax-search" class="search-input" placeholder="Search passengers…" autocomplete="off" />
+        </div>
+        <div class="contacts-controls-right">
+          <span id="pax-count" class="contacts-count"></span>
+          <button id="btn-refresh" class="btn btn-ghost btn-sm">&#8635; Refresh</button>
+        </div>
+      </section>
+
+      <!-- Partner sections -->
+      <div id="pax-sections"></div>
+      <div id="pax-empty"   class="contacts-empty"   style="display:none;">No passengers yet.</div>
+      <div id="pax-loading" class="contacts-loading">Loading passengers&hellip;</div>
+
+    </div>
+  </main>
+
+  <!-- Weight Calculator Bar -->
+  <div class="weight-bar" id="weight-bar">
+    <div class="weight-bar-inner">
+      <div class="weight-bar-top">
+        <div class="weight-bar-chips" id="weight-chips"></div>
+        <div class="weight-total"><span id="weight-total">0</span> lbs selected</div>
+        <button id="weight-clear" class="btn btn-ghost btn-sm">Clear</button>
+      </div>
+      <div class="weight-copy-row">
+        <input type="text" id="weight-copy-text" class="weight-copy-input" readonly
+               placeholder="Select passengers above to generate pilot summary…" />
+        <button id="weight-copy-btn" class="btn btn-primary btn-sm">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Passenger Modal -->
+  <div id="pax-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 id="pax-modal-title">Add Passenger</h2>
+        <button class="modal-close" id="pax-modal-close">&#10005;</button>
+      </div>
+      <form id="pax-form" class="modal-body" novalidate>
+
+        <div class="form-row">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label for="p-partner">Partner</label>
+            <select id="p-partner" name="partner" required>
+              <option value="">— select partner —</option>
+              <option value="Quake">Stephen Quake</option>
+              <option value="Ashley">Euan Ashley</option>
+              <option value="Appenzeller">Guido Appenzeller</option>
+              <option value="Bonforte">Jeff Bonforte</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label for="p-name">Full Name</label>
+            <input type="text" id="p-name" name="name" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="p-weight">Weight (lbs)</label>
+            <input type="number" id="p-weight" name="weight" min="1" max="500" step="1" required />
+          </div>
+          <div class="form-group">
+            <label for="p-dob">Date of Birth</label>
+            <input type="date" id="p-dob" name="dob" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label for="p-email">Email</label>
+            <input type="email" id="p-email" name="email" />
+          </div>
+        </div>
+
+        <div id="pax-form-error" class="form-error" style="display:none;"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="pax-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="pax-modal-submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm -->
+  <div id="delete-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Remove Passenger?</h2>
+        <button class="modal-close" id="delete-modal-close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p id="delete-modal-body"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="delete-cancel">Cancel</button>
+        <button class="btn btn-danger" id="delete-confirm">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config Modal -->
+  <div id="config-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Google Sheets Setup</h2>
+        <button class="modal-close" id="config-modal-close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p class="config-intro">Enter your Google Sheets credentials.</p>
+        <div class="form-group">
+          <label for="cfg-client-id">OAuth Client ID</label>
+          <input type="text" id="cfg-client-id" placeholder="xxxx.apps.googleusercontent.com" />
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label for="cfg-sheet-id">Spreadsheet ID</label>
+          <input type="text" id="cfg-sheet-id" />
+        </div>
+        <div id="config-error" class="form-error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="config-cancel">Cancel</button>
+        <button class="btn btn-primary" id="config-save">Save &amp; Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <button class="btn btn-ghost btn-sm" id="btn-settings">&#9881; Sheets Settings</button>
+    <span class="footer-note">122JM &middot; N122JM &middot; 2015 Pilatus PC-12</span>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/airports.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/passengers-app.js"></script>
+</body>
+</html>

@@ -196,5 +196,238 @@ const Sheets = (() => {
     return raw; // return as-is and hope for the best
   }
 
-  return { fetchAll, appendFlight, updateFlight, deleteFlight };
+  // ── Contacts ────────────────────────────────────────────────────────────
+
+  const CONTACTS_HEADERS = ['Name', 'Categories', 'Phone', 'Email', 'Home Airport', 'Notes'];
+
+  function contactsSheetName() { return Config.get('contactsSheetName') || 'Contacts'; }
+  function cRange(r)           { return `${contactsSheetName()}!${r}`; }
+
+  async function ensureContactsHeaders() {
+    const data = await apiFetch(`/values/${encodeURIComponent(cRange('A1:F1'))}`);
+    const row  = (data.values || [])[0] || [];
+    if (row.length === 0) {
+      await apiFetch(`/values/${encodeURIComponent(cRange('A1:F1'))}?valueInputOption=RAW`, {
+        method: 'PUT',
+        body: JSON.stringify({ values: [CONTACTS_HEADERS] }),
+      });
+    }
+  }
+
+  async function fetchAllContacts() {
+    await ensureContactsHeaders();
+    const data = await apiFetch(`/values/${encodeURIComponent(cRange('A2:F'))}`);
+    return (data.values || [])
+      .map((r, i) => rowToContact(r, i + 2))
+      .filter(c => c.name);
+  }
+
+  async function appendContact(contact) {
+    await ensureContactsHeaders();
+    await apiFetch(
+      `/values/${encodeURIComponent(cRange('A:F'))}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      { method: 'POST', body: JSON.stringify({ values: [contactToRow(contact)] }) }
+    );
+  }
+
+  async function updateContact(contact) {
+    const r = contact._row;
+    if (!r) throw new Error('Missing _row on contact object');
+    await apiFetch(
+      `/values/${encodeURIComponent(cRange(`A${r}:F${r}`))}?valueInputOption=USER_ENTERED`,
+      { method: 'PUT', body: JSON.stringify({ values: [contactToRow(contact)] }) }
+    );
+  }
+
+  async function deleteContact(contact) {
+    const r = contact._row;
+    if (!r) throw new Error('Missing _row on contact object');
+    const meta      = await apiFetch('');
+    const sheetMeta = (meta.sheets || []).find(s => s.properties.title === contactsSheetName());
+    if (!sheetMeta) throw new Error(`Sheet tab "${contactsSheetName()}" not found`);
+    await apiFetch(':batchUpdate', {
+      method: 'POST',
+      body: JSON.stringify({
+        requests: [{ deleteDimension: { range: {
+          sheetId:    sheetMeta.properties.sheetId,
+          dimension:  'ROWS',
+          startIndex: r - 1,
+          endIndex:   r,
+        }}}],
+      }),
+    });
+  }
+
+  function rowToContact(row, sheetRow) {
+    return {
+      _row:       sheetRow,
+      name:       (row[0] || '').trim(),
+      categories: row[1] ? row[1].split(',').map(c => c.trim()).filter(Boolean) : [],
+      phone:      (row[2] || '').trim(),
+      email:      (row[3] || '').trim(),
+      airport:    (row[4] || '').toUpperCase().trim(),
+      notes:      (row[5] || '').trim(),
+    };
+  }
+
+  function contactToRow(c) {
+    return [
+      c.name                 || '',
+      (c.categories || []).join(', '),
+      c.phone                || '',
+      c.email                || '',
+      (c.airport || '').toUpperCase().trim(),
+      c.notes                || '',
+    ];
+  }
+
+  // ── Passengers ──────────────────────────────────────────────────────────
+
+  const PAX_HEADERS = ['Partner', 'Name', 'Email', 'Weight', 'Date of Birth'];
+  function paxSheetName() { return Config.get('paxSheetName') || 'Passengers'; }
+  function pxRange(r)     { return `${paxSheetName()}!${r}`; }
+
+  async function ensurePaxHeaders() {
+    const data = await apiFetch(`/values/${encodeURIComponent(pxRange('A1:E1'))}`);
+    if (!((data.values || [])[0] || []).length) {
+      await apiFetch(`/values/${encodeURIComponent(pxRange('A1:E1'))}?valueInputOption=RAW`, {
+        method: 'PUT', body: JSON.stringify({ values: [PAX_HEADERS] }),
+      });
+    }
+  }
+
+  async function fetchAllPassengers() {
+    await ensurePaxHeaders();
+    const data = await apiFetch(`/values/${encodeURIComponent(pxRange('A2:E'))}`);
+    return (data.values || []).map((r, i) => rowToPassenger(r, i + 2)).filter(p => p.name);
+  }
+
+  async function appendPassenger(p) {
+    await ensurePaxHeaders();
+    await apiFetch(
+      `/values/${encodeURIComponent(pxRange('A:E'))}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      { method: 'POST', body: JSON.stringify({ values: [passengerToRow(p)] }) }
+    );
+  }
+
+  async function updatePassenger(p) {
+    const r = p._row;
+    if (!r) throw new Error('Missing _row');
+    await apiFetch(
+      `/values/${encodeURIComponent(pxRange(`A${r}:E${r}`))}?valueInputOption=USER_ENTERED`,
+      { method: 'PUT', body: JSON.stringify({ values: [passengerToRow(p)] }) }
+    );
+  }
+
+  async function deletePassenger(p) {
+    const r = p._row;
+    if (!r) throw new Error('Missing _row');
+    const meta = await apiFetch('');
+    const sm   = (meta.sheets || []).find(s => s.properties.title === paxSheetName());
+    if (!sm) throw new Error(`Sheet "${paxSheetName()}" not found`);
+    await apiFetch(':batchUpdate', {
+      method: 'POST',
+      body: JSON.stringify({ requests: [{ deleteDimension: { range: {
+        sheetId: sm.properties.sheetId, dimension: 'ROWS',
+        startIndex: r - 1, endIndex: r,
+      }}}] }),
+    });
+  }
+
+  function rowToPassenger(row, sheetRow) {
+    return {
+      _row:    sheetRow,
+      partner: (row[0] || '').trim(),
+      name:    (row[1] || '').trim(),
+      email:   (row[2] || '').trim(),
+      weight:  parseFloat(row[3]) || 0,
+      dob:     (row[4] || '').trim(),
+    };
+  }
+
+  function passengerToRow(p) {
+    return [p.partner || '', p.name || '', p.email || '', p.weight || 0, p.dob || ''];
+  }
+
+  // ── Notes ────────────────────────────────────────────────────────────────
+
+  // Column layout: A=ID  B=Author  C=Content  D=Pinned  E=Created
+  const NOTES_HEADERS = ['ID', 'Author', 'Content', 'Pinned', 'Created'];
+  function notesSheetName() { return Config.get('notesSheetName') || 'Notes'; }
+  function ntRange(r)       { return `${notesSheetName()}!${r}`; }
+
+  async function ensureNotesHeaders() {
+    const data = await apiFetch(`/values/${encodeURIComponent(ntRange('A1:E1'))}`);
+    if (!((data.values || [])[0] || []).length) {
+      await apiFetch(`/values/${encodeURIComponent(ntRange('A1:E1'))}?valueInputOption=RAW`, {
+        method: 'PUT', body: JSON.stringify({ values: [NOTES_HEADERS] }),
+      });
+    }
+  }
+
+  async function fetchAllNotes() {
+    await ensureNotesHeaders();
+    const data = await apiFetch(`/values/${encodeURIComponent(ntRange('A2:E'))}`);
+    return (data.values || []).map((r, i) => rowToNote(r, i + 2)).filter(n => n.content);
+  }
+
+  async function appendNote(n) {
+    await ensureNotesHeaders();
+    await apiFetch(
+      `/values/${encodeURIComponent(ntRange('A:E'))}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      { method: 'POST', body: JSON.stringify({ values: [noteToRow(n)] }) }
+    );
+  }
+
+  async function updateNote(n) {
+    const r = n._row;
+    if (!r) throw new Error('Missing _row');
+    await apiFetch(
+      `/values/${encodeURIComponent(ntRange(`A${r}:E${r}`))}?valueInputOption=USER_ENTERED`,
+      { method: 'PUT', body: JSON.stringify({ values: [noteToRow(n)] }) }
+    );
+  }
+
+  async function deleteNote(n) {
+    const r = n._row;
+    if (!r) throw new Error('Missing _row');
+    const meta = await apiFetch('');
+    const sm   = (meta.sheets || []).find(s => s.properties.title === notesSheetName());
+    if (!sm) throw new Error(`Sheet "${notesSheetName()}" not found`);
+    await apiFetch(':batchUpdate', {
+      method: 'POST',
+      body: JSON.stringify({ requests: [{ deleteDimension: { range: {
+        sheetId: sm.properties.sheetId, dimension: 'ROWS',
+        startIndex: r - 1, endIndex: r,
+      }}}] }),
+    });
+  }
+
+  function rowToNote(row, sheetRow) {
+    return {
+      _row:    sheetRow,
+      id:      (row[0] || '').trim(),
+      author:  (row[1] || '').trim(),
+      content: (row[2] || '').trim(),
+      pinned:  (row[3] || '').toUpperCase() === 'TRUE',
+      created: (row[4] || '').trim(),
+    };
+  }
+
+  function noteToRow(n) {
+    return [
+      n.id      || String(Date.now()),
+      n.author  || '',
+      n.content || '',
+      n.pinned  ? 'TRUE' : 'FALSE',
+      n.created || new Date().toISOString(),
+    ];
+  }
+
+  return {
+    fetchAll, appendFlight, updateFlight, deleteFlight,
+    fetchAllContacts, appendContact, updateContact, deleteContact,
+    fetchAllPassengers, appendPassenger, updatePassenger, deletePassenger,
+    fetchAllNotes, appendNote, updateNote, deleteNote,
+  };
 })();

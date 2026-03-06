@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>122JM Notes — Pilatus PC-12</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>(function(){ var t=localStorage.getItem('122jm_theme')||'dark'; document.documentElement.setAttribute('data-theme',t); })();</script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="tail-number">N122JM</span>
+        <div class="header-subtitle">
+          <span>2015 Pilatus PC-12</span><span class="sep">·</span><span>Notes</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme" class="btn btn-ghost btn-sm">&#9790;</button>
+        <button id="btn-add-note" class="btn btn-primary" disabled>+ Add Note</button>
+        <div id="auth-section">
+          <button id="btn-signin" class="btn btn-secondary">Sign in with Google</button>
+          <button id="btn-signout" class="btn btn-ghost" style="display:none;">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="app-nav">
+    <a href="index.html"      class="nav-tab">&#9992; Flight Log</a>
+    <a href="contacts.html"   class="nav-tab">&#9742; Contacts</a>
+    <a href="passengers.html" class="nav-tab">Passengers</a>
+    <a href="notes.html"      class="nav-tab active">Notes</a>
+  </nav>
+
+  <main class="app-main">
+
+    <div id="auth-prompt" class="auth-prompt">
+      <div class="auth-card">
+        <div class="auth-icon">&#9998;</div>
+        <h2>122JM Notes</h2>
+        <p>Sign in with a partner Google account to access the shared notes.</p>
+        <button id="btn-signin-card" class="btn btn-primary btn-lg">Sign in with Google</button>
+      </div>
+    </div>
+
+    <div id="app-content" style="display:none;">
+
+      <!-- Toolbar -->
+      <div class="notes-toolbar">
+        <button class="note-filter-btn active" data-filter="all">
+          All <span id="badge-all" class="note-unread-badge" style="display:none;"></span>
+        </button>
+        <button class="note-filter-btn" data-filter="unread">
+          Unread <span id="badge-unread" class="note-unread-badge" style="display:none;"></span>
+        </button>
+        <button class="note-filter-btn" data-filter="pinned">Pinned</button>
+
+        <button id="btn-refresh" class="btn btn-ghost btn-sm">&#8635; Refresh</button>
+
+        <div class="notes-author-wrap">
+          <span class="notes-author-label">Your name:</span>
+          <input type="text" id="notes-author" class="notes-author-input"
+                 placeholder="Partner / Pilot name" />
+        </div>
+      </div>
+
+      <!-- Notes grid -->
+      <div class="notes-grid" id="notes-grid"></div>
+      <div id="notes-empty"   class="notes-empty"   style="display:none;">No notes yet.</div>
+      <div id="notes-loading" class="notes-loading">Loading notes&hellip;</div>
+
+    </div>
+  </main>
+
+  <!-- Add / Edit Note Modal -->
+  <div id="note-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="note-modal-title">Add Note</h2>
+        <button class="modal-close" id="note-modal-close">&#10005;</button>
+      </div>
+      <form id="note-form" class="modal-body" novalidate>
+
+        <div class="form-row">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label for="n-content">Note</label>
+            <textarea id="n-content" name="content" class="note-textarea"
+                      placeholder="First line becomes the title (shown bold)&#10;&#10;Rest of the note goes here…"></textarea>
+            <span class="note-modal-hint">First line is displayed as the title.</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="n-author">Author</label>
+            <input type="text" id="n-author" name="author" placeholder="Your name" />
+          </div>
+        </div>
+
+        <div id="note-form-error" class="form-error" style="display:none;"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="note-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="note-modal-submit">Post Note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm -->
+  <div id="delete-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Delete Note?</h2>
+        <button class="modal-close" id="delete-modal-close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p id="delete-modal-body">Are you sure? This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="delete-cancel">Cancel</button>
+        <button class="btn btn-danger" id="delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config Modal -->
+  <div id="config-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Google Sheets Setup</h2>
+        <button class="modal-close" id="config-modal-close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p class="config-intro">Enter your Google Sheets credentials.</p>
+        <div class="form-group">
+          <label for="cfg-client-id">OAuth Client ID</label>
+          <input type="text" id="cfg-client-id" placeholder="xxxx.apps.googleusercontent.com" />
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label for="cfg-sheet-id">Spreadsheet ID</label>
+          <input type="text" id="cfg-sheet-id" />
+        </div>
+        <div id="config-error" class="form-error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="config-cancel">Cancel</button>
+        <button class="btn btn-primary" id="config-save">Save &amp; Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <button class="btn btn-ghost btn-sm" id="btn-settings">&#9881; Sheets Settings</button>
+    <span class="footer-note">122JM &middot; N122JM &middot; 2015 Pilatus PC-12</span>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/airports.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/notes-app.js"></script>
+</body>
+</html>
