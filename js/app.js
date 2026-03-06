@@ -11,6 +11,10 @@ let sortCol  = 'flightNum';
 let sortDir  = 'asc';    // 'asc' | 'desc'
 let dashRange = 'all';   // 'all' | 'ytd' | '90d' | 'custom'
 
+// Year-collapse state: years in this Set are collapsed in the table
+const collapsedYears     = new Set();
+let   yearCollapseInited = false;   // auto-collapse runs only on first load
+
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
@@ -115,6 +119,10 @@ async function loadFlights() {
   tbody.innerHTML             = '';
   try {
     allFlights = await Sheets.fetchAll();
+    if (!yearCollapseInited) {
+      initYearCollapse();
+      yearCollapseInited = true;
+    }
     renderTable();
     renderDashboard();
   } catch (err) {
@@ -122,6 +130,13 @@ async function loadFlights() {
   } finally {
     tableLoading.style.display = 'none';
   }
+}
+
+/** Auto-collapse all years except the current one on first data load. */
+function initYearCollapse() {
+  const currentYear = String(new Date().getFullYear());
+  const years = [...new Set(allFlights.map(f => (f.date || '').slice(0, 4)).filter(Boolean))];
+  years.forEach(y => { if (y !== currentYear) collapsedYears.add(y); });
 }
 
 function showTableError(msg) {
@@ -343,7 +358,47 @@ function renderTable() {
   }
   tableEmpty.style.display = 'none';
 
-  tbody.innerHTML = filtered.map(f => {
+  // Year headers only make sense when rows are in chronological order
+  const showYearHeaders = (sortCol === 'flightNum' || sortCol === 'date');
+
+  // Pre-compute per-year totals for the header stats
+  const yearTotals = {};
+  if (showYearHeaders) {
+    filtered.forEach(f => {
+      const y = (f.date || '').slice(0, 4);
+      if (!y) return;
+      if (!yearTotals[y]) yearTotals[y] = { flights: 0, hours: 0 };
+      yearTotals[y].flights++;
+      yearTotals[y].hours += f.flt || 0;
+    });
+  }
+
+  const rows = [];
+  let lastYear = null;
+
+  filtered.forEach(f => {
+    const year = (f.date || '').slice(0, 4);
+
+    // Inject year header when year changes
+    if (showYearHeaders && year && year !== lastYear) {
+      const t         = yearTotals[year] || { flights: 0, hours: 0 };
+      const collapsed = collapsedYears.has(year);
+      const arrowCls  = collapsed ? 'year-header-arrow' : 'year-header-arrow open';
+      const arrowChr  = collapsed ? '&#9654;' : '&#9660;';   // ▶ / ▼
+      rows.push(`
+        <tr class="year-header-row" data-year="${esc(year)}" onclick="toggleYearSection('${esc(year)}')">
+          <td colspan="13">
+            <div class="year-header-inner">
+              <span class="${arrowCls}">${arrowChr}</span>
+              <span class="year-header-label">${esc(year)}</span>
+              <span class="year-header-stats">${t.flights} flight${t.flights !== 1 ? 's' : ''} &nbsp;·&nbsp; ${t.hours.toFixed(1)} h</span>
+            </div>
+          </td>
+        </tr>`);
+      lastYear = year;
+    }
+
+    const hidden   = showYearHeaders && year && collapsedYears.has(year);
     const duration = f.flt || 0;
     const durStr   = duration > 0 ? duration.toFixed(1) + ' h' : '—';
     const pClass   = operatorClass(f.partner);
@@ -356,8 +411,8 @@ function renderTable() {
     const depTip = depAp ? ` title="${esc(depAp.name + ', ' + depAp.city + ', ' + depAp.state)}"` : '';
     const arrTip = arrAp ? ` title="${esc(arrAp.name + ', ' + arrAp.city + ', ' + arrAp.state)}"` : '';
 
-    return `
-      <tr data-row="${f._row}">
+    rows.push(`
+      <tr data-row="${f._row}" data-year="${esc(year)}"${hidden ? ' style="display:none;"' : ''}>
         <td class="num">${f.flightNum}</td>
         <td>${dateDisp}</td>
         <td class="airport"${depTip}>${esc(f.departure)}</td>
@@ -376,8 +431,10 @@ function renderTable() {
             <button class="btn-icon danger" title="Delete" onclick="openDeleteModal(${f._row})">✕</button>
           </div>
         </td>
-      </tr>`;
-  }).join('');
+      </tr>`);
+  });
+
+  tbody.innerHTML = rows.join('');
 }
 
 // ── Flight Modal ───────────────────────────────────────────────────────────
@@ -1004,4 +1061,33 @@ window.toggleOthers = function(btn) {
   grid.style.display  = open ? 'grid' : 'none';
   arrow.textContent   = open ? '▼' : '▶';
   btn.classList.toggle('open', open);
+};
+
+/**
+ * Toggle a year section open/closed without a full re-render.
+ * Updates the arrow indicator and shows/hides flight rows for that year.
+ */
+window.toggleYearSection = function(year) {
+  const wasCollapsed = collapsedYears.has(year);
+  if (wasCollapsed) {
+    collapsedYears.delete(year);
+  } else {
+    collapsedYears.add(year);
+  }
+  const nowCollapsed = !wasCollapsed;
+
+  // Update the header arrow
+  const headerRow = tbody.querySelector(`.year-header-row[data-year="${year}"]`);
+  if (headerRow) {
+    const arrow = headerRow.querySelector('.year-header-arrow');
+    if (arrow) {
+      arrow.innerHTML   = nowCollapsed ? '&#9654;' : '&#9660;';
+      arrow.classList.toggle('open', !nowCollapsed);
+    }
+  }
+
+  // Show / hide the flight rows for this year
+  tbody.querySelectorAll(`tr[data-year="${year}"]:not(.year-header-row)`).forEach(row => {
+    row.style.display = nowCollapsed ? 'none' : '';
+  });
 };

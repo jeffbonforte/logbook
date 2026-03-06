@@ -366,6 +366,45 @@ td {
 tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: rgba(255,255,255,.03); }
 
+/* ── Year section header rows ── */
+.year-header-row {
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg3);
+}
+.year-header-row:hover { background: var(--bg2); }
+.year-header-row td {
+  padding: 7px 16px;
+  border-bottom: 2px solid var(--border);
+  border-top: 2px solid var(--border);
+}
+.year-header-row:first-child td { border-top: none; }
+.year-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.year-header-arrow {
+  display: inline-block;
+  font-size: .6rem;
+  color: var(--text3);
+  transition: transform .18s;
+  width: 10px;
+  text-align: center;
+}
+.year-header-arrow.open { transform: rotate(90deg); }
+.year-header-label {
+  font-size: .95rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  color: var(--text);
+}
+.year-header-stats {
+  font-size: .78rem;
+  font-weight: 400;
+  color: var(--text3);
+}
+
 td.airport { font-family: "SF Mono", "Consolas", monospace; font-weight: 600; font-size: .8rem; letter-spacing: .05em; }
 td.hobbs   { font-family: "SF Mono", "Consolas", monospace; font-size: .8rem; }
 td.duration-col { font-family: "SF Mono", "Consolas", monospace; font-size: .8rem; color: var(--text2); }
@@ -735,6 +774,7 @@ td.pilot-col {
 .cat-c8  { background: rgba(63,185,80,.12);   color: #56d364; }
 .cat-c9  { background: rgba(218,54,51,.15);   color: var(--danger-h); }
 .cat-c10 { background: var(--bg3);            color: var(--text3); }
+.cat-c11 { background: rgba(244,114,182,.15); color: #f472b6; }
 
 /* Contact detail rows */
 .contact-details { display: flex; flex-direction: column; gap: 5px; }
