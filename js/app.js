@@ -25,6 +25,7 @@ const btnSignin    = $('btn-signin');
 const btnSigninCard= $('btn-signin-card');
 const btnSignout   = $('btn-signout');
 const btnAddFlight = $('btn-add-flight');
+const btnFab       = $('btn-fab-flight');   // mobile FAB
 const btnRefresh   = $('btn-refresh');
 const tableLoading = $('table-loading');
 const tableEmpty   = $('table-empty');
@@ -98,6 +99,7 @@ function onSignedIn() {
   btnSignin.style.display    = 'none';
   btnSignout.style.display   = '';
   btnAddFlight.disabled      = false;
+  if (btnFab) btnFab.disabled = false;
   authPrompt.style.display   = 'none';
   appContent.style.display   = '';
   loadFlights();
@@ -107,6 +109,7 @@ function onSignedOut() {
   btnSignin.style.display    = '';
   btnSignout.style.display   = 'none';
   btnAddFlight.disabled      = true;
+  if (btnFab) btnFab.disabled = true;
   authPrompt.style.display   = '';
   appContent.style.display   = 'none';
   allFlights = [];
@@ -985,8 +988,9 @@ function bindEvents() {
   btnSigninCard.addEventListener('click', () => Auth.signIn());
   btnSignout.addEventListener('click',    () => { Auth.signOut(); onSignedOut(); });
 
-  // Add flight
+  // Add flight (header button + mobile FAB)
   btnAddFlight.addEventListener('click', openAddModal);
+  if (btnFab) btnFab.addEventListener('click', openAddModal);
 
   // Refresh
   btnRefresh.addEventListener('click', loadFlights);

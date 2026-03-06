@@ -1128,11 +1128,86 @@ html[data-theme="light"] .weight-bar               { box-shadow: 0 -4px 20px rgb
 html[data-theme="light"] .note-card.is-unread .note-title { color: var(--text); }
 
 /* ── Responsive ── */
+/* ── Mobile Floating Action Button ── */
+.fab-log-flight { display: none; }   /* desktop: hidden */
+
 @media (max-width: 640px) {
-  .app-main { padding: 12px; }
-  .form-row { grid-template-columns: 1fr; }
-  .search-input { width: 100%; }
-  .auth-card { padding: 32px 24px; }
-  .partner-grid { grid-template-columns: 1fr; }
+
+  /* ── Header ── */
+  .app-header  { padding: 0 16px; height: 52px; }
+  .header-subtitle { display: none; }          /* hide "2015 Pilatus PC-12 · Flight Logbook" */
+  #btn-add-flight  { display: none; }          /* replaced by FAB on mobile */
+
+  /* ── Nav tabs — horizontally scrollable, no visible scrollbar ── */
+  .app-nav { padding: 0 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .app-nav::-webkit-scrollbar { display: none; }
+  .nav-tab  { padding: 10px 14px; font-size: .8rem; }
+
+  /* ── Main ── */
+  .app-main { padding: 12px; padding-bottom: 100px; }  /* room for FAB */
+
+  /* ── Dashboard ── */
   .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+  .partner-grid   { grid-template-columns: 1fr; }
+  .range-bar      { gap: 6px; }
+  .range-btn      { padding: 5px 10px; font-size: .78rem; }
+
+  /* ── Controls bar — stack vertically ── */
+  .controls-bar  { flex-direction: column; align-items: stretch; gap: 8px; }
+  .controls-left { flex-direction: column; gap: 8px; }
+  .search-input  { width: 100%; }
+  .filter-select { width: 100%; }
+
+  /* ── Auth card ── */
+  .auth-card { padding: 32px 24px; }
+
+  /* ── Forms — single column, large tap targets ── */
+  .form-row { grid-template-columns: 1fr; }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 12px 14px;
+    font-size: 1rem;
+    min-height: 48px;
+  }
+  .form-group textarea { min-height: 120px; }
+
+  /* ── Modal — slide up from bottom, full-width sheet ── */
+  .modal-overlay  { align-items: flex-end; padding: 0; }
+  .modal          { border-radius: 16px 16px 0 0; max-width: 100%; max-height: 92vh; }
+  .modal-sm       { max-width: 100%; }
+  .modal-header   { padding: 18px 20px 0; }
+  .modal-body     { padding: 16px 20px; }
+  .modal-footer   { flex-direction: column-reverse; padding: 12px 20px 24px; gap: 8px; }
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+    font-size: 1rem;
+  }
+
+  /* ── Floating Action Button (Log Flight) ── */
+  .fab-log-flight {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    z-index: 150;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 32px;
+    padding: 15px 26px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    box-shadow: 0 4px 20px rgba(0,0,0,.45);
+    cursor: pointer;
+    transition: opacity .15s, transform .12s;
+  }
+  .fab-log-flight:not(:disabled):active { transform: scale(.95); opacity: .9; }
+  .fab-log-flight:disabled { background: var(--text3); cursor: not-allowed; opacity: .6; }
 }
