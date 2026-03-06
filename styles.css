@@ -405,6 +405,42 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   color: var(--text3);
 }
 
+/* ── Month section sub-headers ── */
+.month-header-row {
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg2);
+}
+.month-header-row:hover { background: var(--bg3); }
+.month-header-row td {
+  padding: 5px 16px 5px 36px;   /* indented under year header */
+  border-bottom: 1px solid var(--border);
+}
+.month-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.month-header-arrow {
+  display: inline-block;
+  font-size: .55rem;
+  color: var(--text3);
+  transition: transform .18s;
+  width: 10px;
+  text-align: center;
+}
+.month-header-arrow.open { transform: rotate(90deg); }
+.month-header-label {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text2);
+}
+.month-header-stats {
+  font-size: .73rem;
+  font-weight: 400;
+  color: var(--text3);
+}
+
 td.airport { font-family: "SF Mono", "Consolas", monospace; font-weight: 600; font-size: .8rem; letter-spacing: .05em; }
 td.hobbs   { font-family: "SF Mono", "Consolas", monospace; font-size: .8rem; }
 td.duration-col { font-family: "SF Mono", "Consolas", monospace; font-size: .8rem; color: var(--text2); }

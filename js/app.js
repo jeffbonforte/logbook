@@ -11,9 +11,10 @@ let sortCol  = 'flightNum';
 let sortDir  = 'asc';    // 'asc' | 'desc'
 let dashRange = 'all';   // 'all' | 'ytd' | '90d' | 'custom'
 
-// Year-collapse state: years in this Set are collapsed in the table
-const collapsedYears     = new Set();
-let   yearCollapseInited = false;   // auto-collapse runs only on first load
+// Year/month-collapse state — auto-inited on first load
+const collapsedYears  = new Set();   // "YYYY"
+const collapsedMonths = new Set();   // "YYYY-MM"
+let   yearCollapseInited = false;
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -132,11 +133,17 @@ async function loadFlights() {
   }
 }
 
-/** Auto-collapse all years except the current one on first data load. */
+/** Auto-collapse all years/months except the current ones on first data load. */
 function initYearCollapse() {
-  const currentYear = String(new Date().getFullYear());
-  const years = [...new Set(allFlights.map(f => (f.date || '').slice(0, 4)).filter(Boolean))];
-  years.forEach(y => { if (y !== currentYear) collapsedYears.add(y); });
+  const today        = new Date();
+  const currentYear  = String(today.getFullYear());
+  const currentMonth = `${currentYear}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+  const years  = [...new Set(allFlights.map(f => (f.date || '').slice(0, 4)).filter(Boolean))];
+  const months = [...new Set(allFlights.map(f => (f.date || '').slice(0, 7)).filter(Boolean))];
+
+  years.forEach(y  => { if (y !== currentYear)  collapsedYears.add(y); });
+  months.forEach(m => { if (m !== currentMonth) collapsedMonths.add(m); });
 }
 
 function showTableError(msg) {
@@ -358,61 +365,84 @@ function renderTable() {
   }
   tableEmpty.style.display = 'none';
 
-  // Year headers only make sense when rows are in chronological order
+  // Year/month headers only make sense when rows are in chronological order
   const showYearHeaders = (sortCol === 'flightNum' || sortCol === 'date');
 
-  // Pre-compute per-year totals for the header stats
-  const yearTotals = {};
+  // Pre-compute per-year and per-month totals for the header stats
+  const yearTotals  = {};
+  const monthTotals = {};
   if (showYearHeaders) {
     filtered.forEach(f => {
-      const y = (f.date || '').slice(0, 4);
-      if (!y) return;
-      if (!yearTotals[y]) yearTotals[y] = { flights: 0, hours: 0 };
-      yearTotals[y].flights++;
-      yearTotals[y].hours += f.flt || 0;
+      const y  = (f.date || '').slice(0, 4);
+      const ym = (f.date || '').slice(0, 7);
+      if (!y || !ym) return;
+      if (!yearTotals[y])   yearTotals[y]  = { flights: 0, hours: 0 };
+      if (!monthTotals[ym]) monthTotals[ym] = { flights: 0, hours: 0 };
+      yearTotals[y].flights++;   yearTotals[y].hours  += f.flt || 0;
+      monthTotals[ym].flights++; monthTotals[ym].hours += f.flt || 0;
     });
   }
 
   const rows = [];
-  let lastYear = null;
+  let lastYear = null, lastYearMonth = null;
 
   filtered.forEach(f => {
-    const year = (f.date || '').slice(0, 4);
+    const year      = (f.date || '').slice(0, 4);
+    const yearMonth = (f.date || '').slice(0, 7);   // "YYYY-MM"
 
-    // Inject year header when year changes
+    // ── Year header ──
     if (showYearHeaders && year && year !== lastYear) {
       const t         = yearTotals[year] || { flights: 0, hours: 0 };
       const collapsed = collapsedYears.has(year);
-      const arrowCls  = collapsed ? 'year-header-arrow' : 'year-header-arrow open';
-      const arrowChr  = collapsed ? '&#9654;' : '&#9660;';   // ▶ / ▼
       rows.push(`
         <tr class="year-header-row" data-year="${esc(year)}" onclick="toggleYearSection('${esc(year)}')">
           <td colspan="13">
             <div class="year-header-inner">
-              <span class="${arrowCls}">${arrowChr}</span>
+              <span class="year-header-arrow ${collapsed ? '' : 'open'}">${collapsed ? '&#9654;' : '&#9660;'}</span>
               <span class="year-header-label">${esc(year)}</span>
               <span class="year-header-stats">${t.flights} flight${t.flights !== 1 ? 's' : ''} &nbsp;·&nbsp; ${t.hours.toFixed(1)} h</span>
             </div>
           </td>
         </tr>`);
       lastYear = year;
+      lastYearMonth = null;   // force month header to re-emit after year header
     }
 
-    const hidden   = showYearHeaders && year && collapsedYears.has(year);
+    // ── Month header (sub-row within the year) ──
+    if (showYearHeaders && yearMonth && yearMonth !== lastYearMonth) {
+      const mt           = monthTotals[yearMonth] || { flights: 0, hours: 0 };
+      const yearHidden   = collapsedYears.has(year);
+      const monthCollapsed = collapsedMonths.has(yearMonth);
+      rows.push(`
+        <tr class="month-header-row" data-year="${esc(year)}" data-month="${esc(yearMonth)}"
+            onclick="toggleMonthSection('${esc(yearMonth)}')"
+            ${yearHidden ? 'style="display:none;"' : ''}>
+          <td colspan="13">
+            <div class="month-header-inner">
+              <span class="month-header-arrow ${monthCollapsed ? '' : 'open'}">${monthCollapsed ? '&#9654;' : '&#9660;'}</span>
+              <span class="month-header-label">${formatYearMonth(yearMonth)}</span>
+              <span class="month-header-stats">${mt.flights} flight${mt.flights !== 1 ? 's' : ''} &nbsp;·&nbsp; ${mt.hours.toFixed(1)} h</span>
+            </div>
+          </td>
+        </tr>`);
+      lastYearMonth = yearMonth;
+    }
+
+    // ── Flight row ──
+    const hidden   = showYearHeaders && (collapsedYears.has(year) || collapsedMonths.has(yearMonth));
     const duration = f.flt || 0;
     const durStr   = duration > 0 ? duration.toFixed(1) + ' h' : '—';
     const pClass   = operatorClass(f.partner);
     const pName    = operatorName(f.partner);
     const dateDisp = formatDate(f.date);
 
-    // Airport tooltips — show full name on hover
     const depAp  = Airports.lookup(f.departure);
     const arrAp  = Airports.lookup(f.arrival);
     const depTip = depAp ? ` title="${esc(depAp.name + ', ' + depAp.city + ', ' + depAp.state)}"` : '';
     const arrTip = arrAp ? ` title="${esc(arrAp.name + ', ' + arrAp.city + ', ' + arrAp.state)}"` : '';
 
     rows.push(`
-      <tr data-row="${f._row}" data-year="${esc(year)}"${hidden ? ' style="display:none;"' : ''}>
+      <tr data-row="${f._row}" data-year="${esc(year)}" data-month="${esc(yearMonth)}"${hidden ? ' style="display:none;"' : ''}>
         <td class="num">${f.flightNum}</td>
         <td>${dateDisp}</td>
         <td class="airport"${depTip}>${esc(f.departure)}</td>
@@ -1050,6 +1080,15 @@ function formatDate(iso) {
   return `${months[parseInt(m,10)-1]} ${parseInt(d,10)}, ${y}`;
 }
 
+/** "YYYY-MM" → "Feb 2024" */
+function formatYearMonth(ym) {
+  const [y, m] = (ym || '').split('-');
+  if (!y || !m) return ym;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                  'Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(m, 10) - 1]} ${y}`;
+}
+
 // Expose for inline onclick handlers
 window.openEditModal   = openEditModal;
 window.openDeleteModal = openDeleteModal;
@@ -1065,29 +1104,63 @@ window.toggleOthers = function(btn) {
 
 /**
  * Toggle a year section open/closed without a full re-render.
- * Updates the arrow indicator and shows/hides flight rows for that year.
+ * When collapsing: hides all month headers + all flight rows.
+ * When expanding: shows month headers; shows flight rows only for un-collapsed months.
  */
 window.toggleYearSection = function(year) {
   const wasCollapsed = collapsedYears.has(year);
-  if (wasCollapsed) {
-    collapsedYears.delete(year);
-  } else {
-    collapsedYears.add(year);
-  }
+  if (wasCollapsed) collapsedYears.delete(year);
+  else              collapsedYears.add(year);
   const nowCollapsed = !wasCollapsed;
 
-  // Update the header arrow
+  // Update the year header arrow
   const headerRow = tbody.querySelector(`.year-header-row[data-year="${year}"]`);
   if (headerRow) {
     const arrow = headerRow.querySelector('.year-header-arrow');
     if (arrow) {
-      arrow.innerHTML   = nowCollapsed ? '&#9654;' : '&#9660;';
+      arrow.innerHTML = nowCollapsed ? '&#9654;' : '&#9660;';
       arrow.classList.toggle('open', !nowCollapsed);
     }
   }
 
-  // Show / hide the flight rows for this year
-  tbody.querySelectorAll(`tr[data-year="${year}"]:not(.year-header-row)`).forEach(row => {
+  if (nowCollapsed) {
+    // Hide month headers and all flight rows under this year
+    tbody.querySelectorAll(`tr[data-year="${year}"]:not(.year-header-row)`).forEach(row => {
+      row.style.display = 'none';
+    });
+  } else {
+    // Show month headers (they're always visible when year is open)
+    tbody.querySelectorAll(`tr[data-year="${year}"].month-header-row`).forEach(row => {
+      row.style.display = '';
+    });
+    // Show flight rows only if their month is not independently collapsed
+    tbody.querySelectorAll(`tr[data-year="${year}"][data-month]:not(.year-header-row):not(.month-header-row)`).forEach(row => {
+      row.style.display = collapsedMonths.has(row.dataset.month) ? 'none' : '';
+    });
+  }
+};
+
+/**
+ * Toggle a single month section open/closed without a full re-render.
+ */
+window.toggleMonthSection = function(yearMonth) {
+  const wasCollapsed = collapsedMonths.has(yearMonth);
+  if (wasCollapsed) collapsedMonths.delete(yearMonth);
+  else              collapsedMonths.add(yearMonth);
+  const nowCollapsed = !wasCollapsed;
+
+  // Update the month header arrow
+  const headerRow = tbody.querySelector(`.month-header-row[data-month="${yearMonth}"]`);
+  if (headerRow) {
+    const arrow = headerRow.querySelector('.month-header-arrow');
+    if (arrow) {
+      arrow.innerHTML = nowCollapsed ? '&#9654;' : '&#9660;';
+      arrow.classList.toggle('open', !nowCollapsed);
+    }
+  }
+
+  // Show / hide flight rows for this month
+  tbody.querySelectorAll(`tr[data-month="${yearMonth}"]:not(.month-header-row)`).forEach(row => {
     row.style.display = nowCollapsed ? 'none' : '';
   });
 };
