@@ -180,20 +180,28 @@ const Sheets = (() => {
   }
 
   /**
-   * Normalise date values that may come in as "M/D/YYYY", "MM/DD/YYYY",
-   * or already "YYYY-MM-DD". Returns ISO "YYYY-MM-DD" for consistent sorting.
+   * Normalise any date value to ISO "YYYY-MM-DD" for consistent sorting/grouping.
+   * Handles: "YYYY-MM-DD", "M/D/YYYY", "MM/DD/YYYY", "Feb 23, 2024", etc.
    */
   function normalizeDate(raw) {
     if (!raw) return '';
-    // Already ISO
+    // Already ISO — fast path
     if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
     // M/D/YYYY or MM/DD/YYYY
-    const parts = raw.split('/');
-    if (parts.length === 3) {
-      const [m, d, y] = parts;
+    const slashParts = raw.split('/');
+    if (slashParts.length === 3) {
+      const [m, d, y] = slashParts;
       return `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
     }
-    return raw; // return as-is and hope for the best
+    // Fallback: let the browser parse it ("Feb 23, 2024", "23 Feb 2024", etc.)
+    const parsed = new Date(raw);
+    if (!isNaN(parsed.getTime())) {
+      const y  = parsed.getFullYear();
+      const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+      const dy = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${mo}-${dy}`;
+    }
+    return raw; // unknown format — pass through unchanged
   }
 
   // ── Contacts ────────────────────────────────────────────────────────────
