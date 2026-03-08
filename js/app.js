@@ -851,6 +851,9 @@ function bindEvents() {
   // Refresh
   btnRefresh.addEventListener('click', loadFlights);
 
+  // Airport range lookup
+  bindRangeLookupEvents();
+
   // Dashboard date range buttons
   document.querySelectorAll('.range-btn').forEach(btn => {
     btn.addEventListener('click', () => {

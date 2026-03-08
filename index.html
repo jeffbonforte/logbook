@@ -157,6 +157,7 @@
         </div>
         <div class="controls-right">
           <span id="row-count" class="row-count"></span>
+          <button id="btn-range-lookup" class="btn btn-ghost btn-sm" title="Airport range lookup (1,600 nm from KPAO)">✈ Range</button>
           <button id="btn-refresh" class="btn btn-ghost btn-sm" title="Refresh from Google Sheets">↻ Refresh</button>
         </div>
       </section>
@@ -385,12 +386,60 @@
     <span class="footer-note">122JM · N122JM · 2015 Pilatus PC-12</span>
   </footer>
 
+  <!-- ── Airport Range Lookup Modal ── -->
+  <div id="range-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="range-modal-title">
+    <div class="modal modal-lg modal-range">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <h2 id="range-modal-title">✈ Airport Range Lookup</h2>
+        <button class="modal-close" id="range-modal-close" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Search bar -->
+      <div class="rl-search-bar">
+        <input type="text" id="range-search" class="rl-search-input"
+               placeholder="Search by code, name, city, or state…"
+               autocomplete="off" spellcheck="false" />
+        <span id="range-count" class="rl-count"></span>
+      </div>
+
+      <!-- List view -->
+      <div id="range-list-view">
+        <div class="rl-table-wrap">
+          <table class="rl-table">
+            <thead>
+              <tr>
+                <th class="rl-th-code">Code</th>
+                <th>Airport</th>
+                <th>City / State</th>
+                <th class="num">Dist (nm)</th>
+                <th class="num rl-th-rwy">Runway (ft)</th>
+              </tr>
+            </thead>
+            <tbody id="range-tbody">
+              <!-- populated by range-lookup.js -->
+            </tbody>
+          </table>
+        </div>
+        <p id="range-more" class="rl-more-note" style="display:none;"></p>
+        <p class="rl-hint">Click any airport for full details · 1,600 nm radius from KPAO</p>
+      </div>
+
+      <!-- Detail view (swapped in by JS) -->
+      <div id="range-detail-view" style="display:none;"></div>
+
+    </div>
+  </div>
+
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/airports.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/sheets.js"></script>
   <script src="js/bootstrap.js"></script>
+  <script src="js/airports-data.js"></script>
+  <script src="js/range-lookup.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

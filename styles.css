@@ -1184,6 +1184,198 @@ html[data-theme="light"] .pax-row.selected         { background: rgba(9,105,218,
 html[data-theme="light"] .weight-bar               { box-shadow: 0 -4px 20px rgba(0,0,0,.1); }
 html[data-theme="light"] .note-card.is-unread .note-title { color: var(--text); }
 
+/* ── Airport Range Lookup ── */
+.modal-lg   { max-width: 860px; }
+.modal-range { display: flex; flex-direction: column; max-height: 88vh; }
+
+/* Search bar */
+.rl-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rl-search-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 8px 14px;
+  font-size: .925rem;
+  outline: none;
+  transition: border-color .15s;
+}
+.rl-search-input:focus { border-color: var(--primary); }
+.rl-count {
+  font-size: .8rem;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* Table */
+#range-list-view { display: flex; flex-direction: column; overflow: hidden; min-height: 0; flex: 1; }
+.rl-table-wrap { overflow-y: auto; flex: 1; }
+.rl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+}
+.rl-table thead { background: var(--bg3); position: sticky; top: 0; z-index: 1; }
+.rl-table th {
+  padding: 9px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+}
+.rl-th-code { width: 90px; }
+.rl-th-rwy  { width: 110px; }
+.rl-table td { padding: 8px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.rl-table tr:last-child td { border-bottom: none; }
+.rl-row { cursor: pointer; transition: background .1s; }
+.rl-row:hover { background: rgba(255,255,255,.04); }
+html[data-theme="light"] .rl-row:hover { background: rgba(0,0,0,.04); }
+
+.rl-code-chip {
+  display: inline-block;
+  background: rgba(56,139,253,.15);
+  color: var(--primary-h);
+  border: 1px solid rgba(56,139,253,.25);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: .8rem;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: .03em;
+}
+html[data-theme="light"] .rl-code-chip {
+  background: rgba(9,105,218,.1);
+  border-color: rgba(9,105,218,.2);
+  color: var(--primary);
+}
+.rl-name-cell { color: var(--text); }
+.rl-city-cell { color: var(--text2); font-size: .825rem; }
+.rl-rwy-cell  { color: var(--text2); }
+
+.rl-empty-row { padding: 32px; text-align: center; color: var(--text3); }
+
+.rl-more-note {
+  font-size: .78rem;
+  color: var(--text3);
+  text-align: center;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rl-hint {
+  font-size: .75rem;
+  color: var(--text3);
+  text-align: center;
+  padding: 6px 16px 10px;
+  flex-shrink: 0;
+}
+
+/* Detail view */
+#range-detail-view {
+  padding: 0 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.rl-detail-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.rl-detail-card { display: flex; flex-direction: column; gap: 24px; }
+
+.rl-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.rl-detail-code-badge {
+  background: rgba(56,139,253,.15);
+  color: var(--primary-h);
+  border: 1px solid rgba(56,139,253,.3);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-family: monospace;
+  letter-spacing: .06em;
+  flex-shrink: 0;
+}
+html[data-theme="light"] .rl-detail-code-badge {
+  background: rgba(9,105,218,.1);
+  border-color: rgba(9,105,218,.25);
+  color: var(--primary);
+}
+.rl-detail-hero-text { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.rl-detail-airport-name { font-size: 1.15rem; font-weight: 600; }
+.rl-detail-location { font-size: .9rem; color: var(--text2); }
+
+.rl-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.rl-stat {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rl-stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); }
+.rl-stat-value { font-size: 1.1rem; font-weight: 600; color: var(--text); }
+
+.rl-detail-section { display: flex; flex-direction: column; gap: 10px; }
+.rl-section-label {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text3);
+  font-weight: 600;
+}
+.rl-nearby-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rl-nearby-chip {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 11px;
+  font-size: .8rem;
+  color: var(--text2);
+}
+.rl-no-nearby { font-size: .85rem; color: var(--text3); font-style: italic; }
+
+.rl-notes-placeholder {
+  font-size: .875rem;
+  color: var(--text3);
+  font-style: italic;
+  padding: 14px 16px;
+  background: var(--bg3);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+/* Copy success flash */
+.rl-copied {
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+  color: #fff !important;
+}
+
 /* ── Responsive ── */
 /* ── Mobile Floating Action Button ── */
 .fab-log-flight { display: none; }   /* desktop: hidden */
@@ -1267,4 +1459,10 @@ html[data-theme="light"] .note-card.is-unread .note-title { color: var(--text); 
   }
   .fab-log-flight:not(:disabled):active { transform: scale(.95); opacity: .9; }
   .fab-log-flight:disabled { background: var(--text3); cursor: not-allowed; opacity: .6; }
+
+  /* ── Range lookup — mobile overrides ── */
+  .rl-th-rwy   { display: none; }
+  .rl-rwy-cell { display: none; }
+  .rl-name-cell { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rl-detail-stats { grid-template-columns: 1fr 1fr; }
 }
