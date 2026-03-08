@@ -235,24 +235,27 @@ function renderDashboard() {
     dashRange === '90d' ? 'Partner Hours — Last 90 Days' : 'Partner Hours — Custom Range';
 
   // Per-operator breakdown (uses same date-filtered set)
-  // Tally every operator key seen in the data
+  // Group by canonical display name so all raw variants of the same operator
+  // (e.g. "Borbolla", "Borbolla (Up)", "Borbolla (pull)", "Borbolla (UL)") merge into one card.
   const byOp = {};
   flights.forEach(f => {
-    const key = f.partner || 'Unknown';
-    if (!byOp[key]) byOp[key] = { hobbs: 0, flights: 0, landings: 0, cycles: 0 };
-    byOp[key].hobbs    += f.flt || 0;
-    byOp[key].flights  += 1;
-    byOp[key].landings += f.landings;
-    byOp[key].cycles   += f.cycles;
+    const raw  = f.partner || 'Unknown';
+    const name = operatorName(raw);    // canonical display name
+    if (!byOp[name]) byOp[name] = { hobbs: 0, flights: 0, landings: 0, cycles: 0, rawKey: raw };
+    byOp[name].hobbs    += f.flt || 0;
+    byOp[name].flights  += 1;
+    byOp[name].landings += f.landings;
+    byOp[name].cycles   += f.cycles;
   });
 
   // Current partners first (always shown, even at 0)
   const currentCards = CURRENT_PARTNERS.map(key => {
-    const d   = byOp[key] || { hobbs: 0, flights: 0, landings: 0, cycles: 0 };
+    const displayName = operatorName(key);
+    const d   = byOp[displayName] || { hobbs: 0, flights: 0, landings: 0, cycles: 0 };
     const cls = operatorClass(key);
     return `
       <div class="partner-card">
-        <div class="partner-name">${operatorName(key)}</div>
+        <div class="partner-name">${esc(displayName)}</div>
         <div class="partner-stats">
           <div class="partner-stat"><strong>${d.hobbs.toFixed(1)}</strong> hrs</div>
           <div class="partner-stat"><strong>${d.flights}</strong> flights</div>
@@ -263,18 +266,19 @@ function renderDashboard() {
   }).join('');
 
   // Other operators seen in this period (former, shared, charter) — only if they have flights
-  const otherKeys = Object.keys(byOp).filter(k => !CURRENT_PARTNERS.includes(k));
+  const currentNames = new Set(CURRENT_PARTNERS.map(k => operatorName(k)));
+  const otherKeys    = Object.keys(byOp).filter(name => !currentNames.has(name));
   let otherSection = '';
   if (otherKeys.length > 0) {
-    const otherCards = otherKeys.map(key => {
-      const d   = byOp[key];
-      const cat = operatorCategory(key);
+    const otherCards = otherKeys.map(name => {
+      const d   = byOp[name];
+      const cat = operatorCategory(d.rawKey);   // use stored raw key for category lookup
       const tag = cat === 'former'  ? ' <span class="op-tag">former</span>'  :
                   cat === 'charter' ? ' <span class="op-tag">charter</span>' :
                   cat === 'shared'  ? ' <span class="op-tag">ops</span>'     : '';
       return `
         <div class="partner-card partner-card-other">
-          <div class="partner-name">${operatorName(key)}${tag}</div>
+          <div class="partner-name">${esc(name)}${tag}</div>
           <div class="partner-stats">
             <div class="partner-stat"><strong>${d.hobbs.toFixed(1)}</strong> hrs</div>
             <div class="partner-stat"><strong>${d.flights}</strong> flights</div>
@@ -284,7 +288,7 @@ function renderDashboard() {
         </div>`;
     }).join('');
 
-    const totalOtherFlights = otherKeys.reduce((s, k) => s + byOp[k].flights, 0);
+    const totalOtherFlights = otherKeys.reduce((s, name) => s + byOp[name].flights, 0);
     otherSection = `
       <div class="others-toggle-row">
         <button class="others-toggle" onclick="toggleOthers(this)">

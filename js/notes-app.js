@@ -5,15 +5,17 @@
  */
 
 // ── Constants ────────────────────────────────────────────────────────────────
-const READ_KEY   = '122jm_read_notes';
-const AUTHOR_KEY = '122jm_author';
-const THEME_KEY  = '122jm_theme';
+const READ_KEY      = '122jm_read_notes';
+const AUTHOR_KEY    = '122jm_author';
+const THEME_KEY     = '122jm_theme';
+const NOTES_VIEW_KEY = '122jm_notes_view';
 
 // ── State ────────────────────────────────────────────────────────────────────
 let allNotes    = [];
 let editingNote = null;
 let deleteTarget = null;
 let notesFilter  = 'all';   // 'all' | 'unread' | 'pinned'
+let notesView    = localStorage.getItem(NOTES_VIEW_KEY) || 'list';  // 'list' | 'cards'
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -99,6 +101,10 @@ function getSorted(notes) {
 function renderNotes() {
   const readIds  = getReadIds();
   const filtered = getSorted(getFiltered());
+  const grid     = $('notes-grid');
+
+  // Apply view class
+  grid.className = notesView === 'list' ? 'notes-view-list' : 'notes-view-cards';
 
   // Update filter badges
   const totalUnread = allNotes.filter(n => !readIds.has(n.id)).length;
@@ -108,7 +114,7 @@ function renderNotes() {
   $('badge-unread').style.display = totalUnread ? '' : 'none';
 
   if (filtered.length === 0) {
-    $('notes-grid').innerHTML     = '';
+    grid.innerHTML                = '';
     $('notes-empty').style.display = '';
     $('notes-empty').textContent  = allNotes.length === 0
       ? 'No notes yet. Click "+ Add Note" to post the first one.'
@@ -118,7 +124,7 @@ function renderNotes() {
   }
   $('notes-empty').style.display = 'none';
 
-  $('notes-grid').innerHTML = filtered.map(n => buildNoteCard(n, readIds)).join('');
+  grid.innerHTML = filtered.map(n => buildNoteCard(n, readIds)).join('');
 
   // Async: load URL previews for each note
   filtered.forEach(n => {
@@ -128,6 +134,8 @@ function renderNotes() {
     if (cardEl) loadUrlPreviews(cardEl, urls, n._row);
   });
 }
+
+const NOTE_PREVIEW_LINES = 3;   // lines shown before "more" button
 
 function buildNoteCard(n, readIds) {
   const read    = readIds.has(n.id);
@@ -146,9 +154,23 @@ function buildNoteCard(n, readIds) {
   const readLbl = read ? 'Mark Unread' : 'Mark Read';
 
   const urls       = extractUrls(n.content);
-  const previewHtml = urls.length
+  const urlHtml = urls.length
     ? `<div class="url-previews" id="url-prev-${n._row}">${urls.map((u, i) => buildPreviewPlaceholder(u, n._row, i)).join('')}</div>`
     : '';
+
+  // Body: collapse to NOTE_PREVIEW_LINES if note is long
+  let bodyHtml = '';
+  if (body) {
+    const bodyLines = body.split('\n');
+    if (bodyLines.length > NOTE_PREVIEW_LINES) {
+      const snippetHtml = linkify(bodyLines.slice(0, NOTE_PREVIEW_LINES).join('\n'));
+      const fullHtml    = linkify(body);
+      bodyHtml = `
+      <div class="note-body"><div class="note-body-text"><span class="note-body-preview">${snippetHtml}<span class="note-body-ellipsis"> …</span></span><span class="note-body-full" style="display:none;">${fullHtml}</span></div><button class="note-expand-btn" onclick="toggleNoteBody(this)" aria-expanded="false">more</button></div>`;
+    } else {
+      bodyHtml = `<div class="note-body">${linkify(body)}</div>`;
+    }
+  }
 
   return `
     <div class="${cls}" data-note-row="${n._row}">
@@ -161,8 +183,8 @@ function buildNoteCard(n, readIds) {
           <button class="btn-icon danger" title="Delete" onclick="openDeleteModal(${n._row})">&#10005;</button>
         </div>
       </div>
-      ${body ? `<div class="note-body">${linkify(body)}</div>` : ''}
-      ${previewHtml}
+      ${bodyHtml}
+      ${urlHtml}
       <div class="note-meta">
         <span class="note-byline">${esc(n.author || 'Anonymous')} &middot; ${formatDateTime(n.created)}</span>
         <button class="note-read-btn" onclick="toggleRead('${esc(n.id)}', ${n._row})">${readLbl}</button>
@@ -396,6 +418,25 @@ function saveConfig() {
   initGIS();
 }
 
+// ── View toggle (list / cards) ─────────────────────────────────────────────────
+function setNotesViewBtn(view) {
+  const btn = $('btn-notes-view');
+  if (view === 'list') {
+    btn.innerHTML = '&#8862; Cards';   // → "switch TO cards"
+    btn.title     = 'Switch to card view';
+  } else {
+    btn.innerHTML = '&#8801; List';    // → "switch TO list"
+    btn.title     = 'Switch to list view';
+  }
+}
+
+function applyNotesView(view) {
+  notesView = view;
+  localStorage.setItem(NOTES_VIEW_KEY, view);
+  setNotesViewBtn(view);
+  renderNotes();
+}
+
 // ── Theme ─────────────────────────────────────────────────────────────────────
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
@@ -410,6 +451,11 @@ function bindEvents() {
   applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
   $('btn-theme').addEventListener('click', () =>
     applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'));
+
+  // View toggle — initialize label then wire click
+  setNotesViewBtn(notesView);
+  $('btn-notes-view').addEventListener('click', () =>
+    applyNotesView(notesView === 'list' ? 'cards' : 'list'));
 
   $('btn-signin').addEventListener('click',     () => Auth.signIn());
   $('btn-signin-card').addEventListener('click',() => Auth.signIn());
@@ -475,7 +521,29 @@ function formatDateTime(iso) {
 }
 
 // Expose for inline onclick handlers
-window.openEditModal  = openEditModal;
+window.openEditModal   = openEditModal;
 window.openDeleteModal = openDeleteModal;
-window.togglePin      = togglePin;
-window.toggleRead     = toggleRead;
+window.togglePin       = togglePin;
+window.toggleRead      = toggleRead;
+
+/** Expand / collapse a long note body in-place (no re-render). */
+window.toggleNoteBody = function(btn) {
+  const noteBody = btn.closest('.note-body');
+  const preview  = noteBody.querySelector('.note-body-preview');
+  const full     = noteBody.querySelector('.note-body-full');
+  const expanded = btn.getAttribute('aria-expanded') === 'true';
+
+  if (expanded) {
+    // Collapse back to preview
+    preview.style.display = '';
+    full.style.display    = 'none';
+    btn.textContent       = 'more';
+    btn.setAttribute('aria-expanded', 'false');
+  } else {
+    // Expand to full text
+    preview.style.display = 'none';
+    full.style.display    = '';
+    btn.textContent       = 'less';
+    btn.setAttribute('aria-expanded', 'true');
+  }
+};

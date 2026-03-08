@@ -9,6 +9,9 @@ let editingPax     = null;
 let deleteTarget   = null;
 const selectedRows = new Set();   // _row numbers of checked passengers
 
+const PAX_VIEW_KEY = '122jm_pax_view';
+let paxView = localStorage.getItem(PAX_VIEW_KEY) || 'list';  // 'list' | 'cards'
+
 // ── DOM refs ────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
@@ -77,12 +80,72 @@ function getFilteredBySearch() {
   );
 }
 
+// ── Row / card builders ───────────────────────────────────────────────────────
+
+function buildPaxRow(p) {
+  const age     = p.dob ? calcAge(p.dob) : null;
+  const dobDisp = p.dob ? `${formatDob(p.dob)}${age !== null ? ` (${age})` : ''}` : '—';
+  const checked = selectedRows.has(p._row) ? 'checked' : '';
+  const selCls  = selectedRows.has(p._row) ? 'selected' : '';
+  return `
+    <div class="pax-row ${selCls}" data-row="${p._row}">
+      <input type="checkbox" class="pax-checkbox" data-row="${p._row}" ${checked} />
+      <span class="pax-name">${esc(p.name)}</span>
+      <span class="pax-weight">${p.weight > 0 ? p.weight + ' lbs' : '—'}</span>
+      <span class="pax-dob">${dobDisp}</span>
+      <span class="pax-email">${p.email ? `<a href="mailto:${esc(p.email)}" style="color:var(--primary-h);text-decoration:none;">${esc(p.email)}</a>` : '—'}</span>
+      <span class="pax-actions">
+        <button class="btn-icon" title="Edit"   onclick="openEditModal(${p._row})">&#9998;</button>
+        <button class="btn-icon danger" title="Remove" onclick="openDeleteModal(${p._row})">&#10005;</button>
+      </span>
+    </div>`;
+}
+
+function buildPaxCard(p) {
+  const age     = p.dob ? calcAge(p.dob) : null;
+  const dobStr  = p.dob ? `${formatDob(p.dob)}${age !== null ? ` (${age})` : ''}` : null;
+  const checked = selectedRows.has(p._row) ? 'checked' : '';
+  const selCls  = selectedRows.has(p._row) ? 'selected' : '';
+  return `
+    <div class="pax-card ${selCls}" data-row="${p._row}">
+      <input type="checkbox" class="pax-checkbox pax-card-check" data-row="${p._row}" ${checked} title="Select for weight calc" />
+      <div class="pax-card-name">${esc(p.name)}</div>
+      ${p.weight > 0 ? `<div class="pax-card-weight">${p.weight} lbs</div>` : ''}
+      ${dobStr ? `<div class="pax-card-detail">${dobStr}</div>` : ''}
+      ${p.email ? `<div class="pax-card-detail pax-card-email"><a href="mailto:${esc(p.email)}" style="color:var(--primary-h);text-decoration:none;">${esc(p.email)}</a></div>` : ''}
+      <div class="pax-card-actions">
+        <button class="btn-icon" title="Edit"   onclick="openEditModal(${p._row})">&#9998;</button>
+        <button class="btn-icon danger" title="Remove" onclick="openDeleteModal(${p._row})">&#10005;</button>
+      </div>
+    </div>`;
+}
+
+// ── View toggle helper ────────────────────────────────────────────────────────
+function setPaxViewBtn(view) {
+  const btn = $('btn-pax-view');
+  if (view === 'list') {
+    btn.innerHTML = '&#8862; Cards';
+    btn.title     = 'Switch to card view';
+  } else {
+    btn.innerHTML = '&#8801; List';
+    btn.title     = 'Switch to list view';
+  }
+}
+
+function applyPaxView(view) {
+  paxView = view;
+  localStorage.setItem(PAX_VIEW_KEY, view);
+  setPaxViewBtn(view);
+  renderSections();
+}
+
+// ── Rendering ────────────────────────────────────────────────────────────────
 function renderSections() {
   const passengers = getFilteredBySearch();
   const total      = passengers.length;
   $('pax-count').textContent = `${total} of ${allPassengers.length} passenger${allPassengers.length !== 1 ? 's' : ''}`;
 
-  // Group by partner — keep CURRENT_PARTNERS order, then any others
+  // Group by partner — keep PARTNER_ORDER, then any others
   const byPartner = {};
   passengers.forEach(p => {
     const k = p.partner || 'Other';
@@ -109,26 +172,19 @@ function renderSections() {
     const paxList = byPartner[key];
     const pName   = operatorName(key);
     const pClass  = operatorClass(key);
-    const isOpen  = true;   // default all open
 
-    const rows = paxList.map(p => {
-      const age   = p.dob ? calcAge(p.dob) : null;
-      const dobDisp = p.dob ? `${formatDob(p.dob)}${age !== null ? ` (${age})` : ''}` : '—';
-      const checked = selectedRows.has(p._row) ? 'checked' : '';
-      const selCls  = selectedRows.has(p._row) ? 'selected' : '';
-      return `
-        <div class="pax-row ${selCls}" data-row="${p._row}">
-          <input type="checkbox" class="pax-checkbox" data-row="${p._row}" ${checked} />
-          <span class="pax-name">${esc(p.name)}</span>
-          <span class="pax-weight">${p.weight > 0 ? p.weight + ' lbs' : '—'}</span>
-          <span class="pax-dob">${dobDisp}</span>
-          <span class="pax-email">${p.email ? `<a href="mailto:${esc(p.email)}" style="color:var(--primary-h);text-decoration:none;">${esc(p.email)}</a>` : '—'}</span>
-          <span class="pax-actions">
-            <button class="btn-icon" title="Edit"   onclick="openEditModal(${p._row})">&#9998;</button>
-            <button class="btn-icon danger" title="Remove" onclick="openDeleteModal(${p._row})">&#10005;</button>
-          </span>
-        </div>`;
-    }).join('');
+    // Section body: list rows or card grid depending on current view
+    const sectionBody = paxView === 'cards'
+      ? `<div class="pax-rows pax-rows-cards open">
+           <div class="pax-card-grid">${paxList.map(buildPaxCard).join('')}</div>
+         </div>`
+      : `<div class="pax-rows open">
+           <div class="pax-col-headers">
+             <span></span><span>Name</span><span>Weight</span>
+             <span>Date of Birth</span><span>Email</span><span></span>
+           </div>
+           ${paxList.map(buildPaxRow).join('')}
+         </div>`;
 
     return `
       <div class="pax-section">
@@ -143,17 +199,7 @@ function renderSections() {
             <span class="pax-section-arrow">&#9654;</span>
           </span>
         </div>
-        <div class="pax-rows open">
-          <div class="pax-col-headers">
-            <span></span>
-            <span>Name</span>
-            <span>Weight</span>
-            <span>Date of Birth</span>
-            <span>Email</span>
-            <span></span>
-          </div>
-          ${rows}
-        </div>
+        ${sectionBody}
       </div>`;
   }).join('');
 
@@ -383,6 +429,11 @@ function bindEvents() {
   applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
   $('btn-theme').addEventListener('click', () =>
     applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'));
+
+  // View toggle
+  setPaxViewBtn(paxView);
+  $('btn-pax-view').addEventListener('click', () =>
+    applyPaxView(paxView === 'list' ? 'cards' : 'list'));
 
   $('btn-signin').addEventListener('click',     () => Auth.signIn());
   $('btn-signin-card').addEventListener('click',() => Auth.signIn());
