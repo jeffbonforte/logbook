@@ -17,7 +17,6 @@ const collapsedMonths = new Set();   // "YYYY-MM"
 let   yearCollapseInited = false;
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
 
 const authPrompt   = $('auth-prompt');
 const appContent   = $('app-content');
@@ -61,36 +60,10 @@ const configError  = $('config-error');
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
 
-/**
- * Called by the GIS script's onload callback (injected by initGIS below).
- */
-window.onGISLoad = function () {
-  Auth.init(onSignedIn, onSignedOut);
-  if (Config.isConfigured()) {
-    // Try silent sign-in — GIS will prompt if no token cached
-    Auth.signIn();
-  }
-};
-
-function initGIS() {
-  // Dynamically load the Google Identity Services library
-  const script = document.createElement('script');
-  script.src = 'https://accounts.google.com/gsi/client';
-  script.async = true;
-  script.defer = true;
-  script.onload = window.onGISLoad;
-  document.head.appendChild(script);
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
-  if (Config.isConfigured()) {
-    initGIS();
-  }
-  // If not configured, show the config modal immediately
-  if (!Config.isConfigured()) {
-    setTimeout(() => showConfigModal(), 300);
-  }
+  if (Config.isConfigured()) initGIS(onSignedIn, onSignedOut);
+  else setTimeout(() => showConfigModal(), 300);
 });
 
 // ── Auth state handlers ────────────────────────────────────────────────────
@@ -291,7 +264,7 @@ function renderDashboard() {
     const totalOtherFlights = otherKeys.reduce((s, name) => s + byOp[name].flights, 0);
     otherSection = `
       <div class="others-toggle-row">
-        <button class="others-toggle" onclick="toggleOthers(this)">
+        <button class="others-toggle" data-action="toggle-others">
           <span class="others-toggle-arrow">▶</span>
           See Others
           <span class="others-toggle-count">${otherKeys.length} operator${otherKeys.length > 1 ? 's' : ''}, ${totalOtherFlights} flight${totalOtherFlights !== 1 ? 's' : ''}</span>
@@ -402,7 +375,7 @@ function renderTable() {
       const t         = yearTotals[year] || { flights: 0, hours: 0 };
       const collapsed = collapsedYears.has(year);
       rows.push(`
-        <tr class="year-header-row" data-year="${esc(year)}" onclick="toggleYearSection('${esc(year)}')">
+        <tr class="year-header-row" data-year="${esc(year)}" data-toggle-year="${esc(year)}">
           <td colspan="13">
             <div class="year-header-inner">
               <span class="year-header-arrow ${collapsed ? '' : 'open'}">${collapsed ? '&#9654;' : '&#9660;'}</span>
@@ -422,7 +395,7 @@ function renderTable() {
       const monthCollapsed = collapsedMonths.has(yearMonth);
       rows.push(`
         <tr class="month-header-row" data-year="${esc(year)}" data-month="${esc(yearMonth)}"
-            onclick="toggleMonthSection('${esc(yearMonth)}')"
+            data-toggle-month="${esc(yearMonth)}"
             ${yearHidden ? 'style="display:none;"' : ''}>
           <td colspan="13">
             <div class="month-header-inner">
@@ -464,8 +437,8 @@ function renderTable() {
         <td><span class="purpose-badge">${esc(f.purpose)}</span></td>
         <td>
           <div class="action-btns">
-            <button class="btn-icon" title="Edit" onclick="openEditModal(${f._row})">✎</button>
-            <button class="btn-icon danger" title="Delete" onclick="openDeleteModal(${f._row})">✕</button>
+            <button class="btn-icon" title="Edit" data-edit-row="${f._row}">✎</button>
+            <button class="btn-icon danger" title="Delete" data-delete-row="${f._row}">✕</button>
           </div>
         </td>
       </tr>`);
@@ -635,7 +608,7 @@ async function handleDeleteConfirm() {
     renderTable();
     renderDashboard();
   } catch (err) {
-    alert('Delete failed: ' + err.message);
+    deleteBody.textContent = 'Delete failed: ' + err.message;
   } finally {
     btn.disabled    = false;
     btn.textContent = 'Delete';
@@ -672,7 +645,7 @@ function saveConfig() {
   closeConfigModal();
 
   // Re-initialize GIS with new credentials
-  initGIS();
+  initGIS(onSignedIn, onSignedOut);
 }
 
 // ── Sorting ────────────────────────────────────────────────────────────────
@@ -685,109 +658,6 @@ function handleSortClick(col) {
     sortDir = 'asc';
   }
   renderTable();
-}
-
-// ── Airport Autocomplete ────────────────────────────────────────────────────
-
-/**
- * Attach typeahead behaviour to a departure/arrival input.
- * - Searches as user types (min 2 chars)
- * - Arrow keys / Enter for keyboard nav; Escape closes
- * - Selecting an option fills the ICAO code (e.g. KPAO)
- * - Handles K-prefix equivalence: typing "PAO" matches KPAO
- */
-function initAirportAutocomplete(inputId) {
-  const input = $(inputId);
-  let dropdown  = null;  // <div class="airport-dropdown">
-  let options   = [];    // current result set
-  let activeIdx = -1;    // keyboard-highlighted index
-
-  // ── Helpers ──
-
-  function createDropdown() {
-    const el = document.createElement('div');
-    el.className = 'airport-dropdown';
-    el.style.display = 'none';
-    input.parentElement.appendChild(el);  // inside .airport-ac-wrap
-    return el;
-  }
-
-  function closeDropdown() {
-    if (dropdown) dropdown.style.display = 'none';
-    options   = [];
-    activeIdx = -1;
-  }
-
-  function setActive(idx) {
-    if (!dropdown) return;
-    const items = dropdown.querySelectorAll('.airport-option');
-    items.forEach(o => o.classList.remove('active'));
-    if (idx >= 0 && idx < items.length) {
-      items[idx].classList.add('active');
-      items[idx].scrollIntoView({ block: 'nearest' });
-      activeIdx = idx;
-    } else {
-      activeIdx = -1;
-    }
-  }
-
-  function selectOption(ap) {
-    input.value = ap.icao;
-    closeDropdown();
-    input.dispatchEvent(new Event('change'));
-    updateDurationHint();   // refresh hint if it's the Hobbs form (no-op otherwise)
-  }
-
-  function renderDropdown(results) {
-    if (!dropdown) dropdown = createDropdown();
-    if (results.length === 0) { closeDropdown(); return; }
-    options   = results;
-    activeIdx = -1;
-
-    dropdown.innerHTML = results.map((ap, i) =>
-      `<div class="airport-option" data-idx="${i}">
-        <span class="ap-code">${esc(ap.icao)}</span>
-        <span class="ap-detail">${esc(ap.name)} · ${esc(ap.city)}, ${esc(ap.state)}</span>
-      </div>`
-    ).join('');
-
-    // Mousedown so it fires before the input's blur event
-    dropdown.querySelectorAll('.airport-option').forEach(item => {
-      item.addEventListener('mousedown', e => {
-        e.preventDefault();
-        selectOption(options[parseInt(item.dataset.idx)]);
-      });
-    });
-
-    dropdown.style.display = '';
-  }
-
-  // ── Events ──
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim();
-    if (q.length < 2) { closeDropdown(); return; }
-    renderDropdown(Airports.search(q, 8));
-  });
-
-  input.addEventListener('keydown', e => {
-    if (!dropdown || dropdown.style.display === 'none') return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActive(Math.min(activeIdx + 1, options.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActive(Math.max(activeIdx - 1, 0));
-    } else if (e.key === 'Enter' && activeIdx >= 0) {
-      e.preventDefault();
-      selectOption(options[activeIdx]);
-    } else if (e.key === 'Escape') {
-      closeDropdown();
-    }
-  });
-
-  // Close on blur (delay allows mousedown to fire first)
-  input.addEventListener('blur', () => setTimeout(closeDropdown, 160));
 }
 
 // ── Search Bar Autocomplete ─────────────────────────────────────────────────
@@ -959,29 +829,11 @@ function initSearchAutocomplete() {
   input.addEventListener('blur', () => setTimeout(closeDropdown, 160));
 }
 
-// ── Theme Toggle ───────────────────────────────────────────────────────────
-
-const THEME_KEY = '122jm_theme';
-
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  const btn = $('btn-theme');
-  if (theme === 'light') {
-    btn.innerHTML = '&#9790;';   // crescent moon — click to go dark
-    btn.title = 'Switch to dark mode';
-  } else {
-    btn.innerHTML = '&#9728;';   // sun — click to go light
-    btn.title = 'Switch to light mode';
-  }
-  localStorage.setItem(THEME_KEY, theme);
-}
-
 // ── Event Bindings ─────────────────────────────────────────────────────────
 
 function bindEvents() {
   // Theme
-  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
-  applyTheme(savedTheme);
+  applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
   $('btn-theme').addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
     applyTheme(current === 'light' ? 'dark' : 'light');
@@ -1025,6 +877,24 @@ function bindEvents() {
     th.addEventListener('click', () => handleSortClick(th.dataset.col));
   });
 
+  // Table body — delegated: year/month toggles + edit/delete buttons
+  tbody.addEventListener('click', e => {
+    const yearRow   = e.target.closest('[data-toggle-year]');
+    if (yearRow)   { toggleYearSection(yearRow.dataset.toggleYear); return; }
+    const monthRow  = e.target.closest('[data-toggle-month]');
+    if (monthRow)  { toggleMonthSection(monthRow.dataset.toggleMonth); return; }
+    const editBtn   = e.target.closest('[data-edit-row]');
+    if (editBtn)   { openEditModal(parseInt(editBtn.dataset.editRow)); return; }
+    const deleteBtn = e.target.closest('[data-delete-row]');
+    if (deleteBtn) { openDeleteModal(parseInt(deleteBtn.dataset.deleteRow)); return; }
+  });
+
+  // Partner grid — delegated: "See Others" toggle
+  partnerGrid.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action="toggle-others"]');
+    if (btn) toggleOthers(btn);
+  });
+
   // Flight modal
   $('modal-close').addEventListener('click',  closeFlightModal);
   $('modal-cancel').addEventListener('click', closeFlightModal);
@@ -1035,8 +905,8 @@ function bindEvents() {
   $('f-hobbs-end').addEventListener('input',   updateDurationHint);
 
   // Airport autocomplete for departure and arrival fields
-  initAirportAutocomplete('f-departure');
-  initAirportAutocomplete('f-arrival');
+  initAirportAutocomplete('f-departure', updateDurationHint);
+  initAirportAutocomplete('f-arrival',   updateDurationHint);
 
   // Delete modal
   $('delete-modal-close').addEventListener('click', closeDeleteModal);
@@ -1068,12 +938,6 @@ function bindEvents() {
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 
-function esc(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -1097,11 +961,7 @@ function formatYearMonth(ym) {
   return `${months[parseInt(m, 10) - 1]} ${y}`;
 }
 
-// Expose for inline onclick handlers
-window.openEditModal   = openEditModal;
-window.openDeleteModal = openDeleteModal;
-
-window.toggleOthers = function(btn) {
+function toggleOthers(btn) {
   const grid  = btn.closest('.others-toggle-row').nextElementSibling;
   const arrow = btn.querySelector('.others-toggle-arrow');
   const open  = grid.style.display === 'none';
@@ -1115,7 +975,7 @@ window.toggleOthers = function(btn) {
  * When collapsing: hides all month headers + all flight rows.
  * When expanding: shows month headers; shows flight rows only for un-collapsed months.
  */
-window.toggleYearSection = function(year) {
+function toggleYearSection(year) {
   const wasCollapsed = collapsedYears.has(year);
   if (wasCollapsed) collapsedYears.delete(year);
   else              collapsedYears.add(year);
@@ -1151,7 +1011,7 @@ window.toggleYearSection = function(year) {
 /**
  * Toggle a single month section open/closed without a full re-render.
  */
-window.toggleMonthSection = function(yearMonth) {
+function toggleMonthSection(yearMonth) {
   const wasCollapsed = collapsedMonths.has(yearMonth);
   if (wasCollapsed) collapsedMonths.delete(yearMonth);
   else              collapsedMonths.add(yearMonth);

@@ -612,3 +612,98 @@ const Airports = (() => {
 
   return { lookup, search, canonicalize };
 })();
+
+/**
+ * Attach airport typeahead autocomplete to an input element.
+ * Shared by all pages that have an airport field.
+ *
+ * @param {string}   inputId  - ID of the text input to enhance.
+ * @param {Function} [onSelect] - Optional callback fired after a selection is made.
+ */
+function initAirportAutocomplete(inputId, onSelect) {
+  const input = document.getElementById(inputId);
+  let dropdown  = null;
+  let options   = [];
+  let activeIdx = -1;
+
+  function createDropdown() {
+    const el = document.createElement('div');
+    el.className     = 'airport-dropdown';
+    el.style.display = 'none';
+    input.parentElement.appendChild(el);   // inside .airport-ac-wrap
+    return el;
+  }
+
+  function closeDropdown() {
+    if (dropdown) dropdown.style.display = 'none';
+    options   = [];
+    activeIdx = -1;
+  }
+
+  function setActive(idx) {
+    if (!dropdown) return;
+    const items = dropdown.querySelectorAll('.airport-option');
+    items.forEach(o => o.classList.remove('active'));
+    if (idx >= 0 && idx < items.length) {
+      items[idx].classList.add('active');
+      items[idx].scrollIntoView({ block: 'nearest' });
+      activeIdx = idx;
+    } else {
+      activeIdx = -1;
+    }
+  }
+
+  function selectOption(ap) {
+    input.value = ap.icao;
+    closeDropdown();
+    input.dispatchEvent(new Event('change'));
+    if (onSelect) onSelect();
+  }
+
+  function renderDropdown(results) {
+    if (!dropdown) dropdown = createDropdown();
+    if (results.length === 0) { closeDropdown(); return; }
+    options   = results;
+    activeIdx = -1;
+
+    dropdown.innerHTML = results.map((ap, i) =>
+      `<div class="airport-option" data-idx="${i}">
+        <span class="ap-code">${esc(ap.icao)}</span>
+        <span class="ap-detail">${esc(ap.name)} &middot; ${esc(ap.city)}, ${esc(ap.state)}</span>
+      </div>`
+    ).join('');
+
+    dropdown.querySelectorAll('.airport-option').forEach(item => {
+      item.addEventListener('mousedown', e => {
+        e.preventDefault();
+        selectOption(options[parseInt(item.dataset.idx)]);
+      });
+    });
+
+    dropdown.style.display = '';
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    if (q.length < 2) { closeDropdown(); return; }
+    renderDropdown(Airports.search(q, 8));
+  });
+
+  input.addEventListener('keydown', e => {
+    if (!dropdown || dropdown.style.display === 'none') return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive(Math.min(activeIdx + 1, options.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive(Math.max(activeIdx - 1, 0));
+    } else if (e.key === 'Enter' && activeIdx >= 0) {
+      e.preventDefault();
+      selectOption(options[activeIdx]);
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+    }
+  });
+
+  input.addEventListener('blur', () => setTimeout(closeDropdown, 160));
+}

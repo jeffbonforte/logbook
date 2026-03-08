@@ -12,26 +12,11 @@ const selectedRows = new Set();   // _row numbers of checked passengers
 const PAX_VIEW_KEY = '122jm_pax_view';
 let paxView = localStorage.getItem(PAX_VIEW_KEY) || 'list';  // 'list' | 'cards'
 
-// ── DOM refs ────────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-
 // ── Bootstrap ────────────────────────────────────────────────────────────────
-window.onGISLoad = function () {
-  Auth.init(onSignedIn, onSignedOut);
-  if (Config.isConfigured()) Auth.signIn();
-};
-
-function initGIS() {
-  const s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true; s.defer = true;
-  s.onload = window.onGISLoad;
-  document.head.appendChild(s);
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
-  if (Config.isConfigured()) initGIS();
+  if (Config.isConfigured()) initGIS(onSignedIn, onSignedOut);
   else setTimeout(() => showConfigModal(), 300);
 });
 
@@ -95,8 +80,8 @@ function buildPaxRow(p) {
       <span class="pax-dob">${dobDisp}</span>
       <span class="pax-email">${p.email ? `<a href="mailto:${esc(p.email)}" style="color:var(--primary-h);text-decoration:none;">${esc(p.email)}</a>` : '—'}</span>
       <span class="pax-actions">
-        <button class="btn-icon" title="Edit"   onclick="openEditModal(${p._row})">&#9998;</button>
-        <button class="btn-icon danger" title="Remove" onclick="openDeleteModal(${p._row})">&#10005;</button>
+        <button class="btn-icon" title="Edit"   data-edit-row="${p._row}">&#9998;</button>
+        <button class="btn-icon danger" title="Remove" data-delete-row="${p._row}">&#10005;</button>
       </span>
     </div>`;
 }
@@ -114,8 +99,8 @@ function buildPaxCard(p) {
       ${dobStr ? `<div class="pax-card-detail">${dobStr}</div>` : ''}
       ${p.email ? `<div class="pax-card-detail pax-card-email"><a href="mailto:${esc(p.email)}" style="color:var(--primary-h);text-decoration:none;">${esc(p.email)}</a></div>` : ''}
       <div class="pax-card-actions">
-        <button class="btn-icon" title="Edit"   onclick="openEditModal(${p._row})">&#9998;</button>
-        <button class="btn-icon danger" title="Remove" onclick="openDeleteModal(${p._row})">&#10005;</button>
+        <button class="btn-icon" title="Edit"   data-edit-row="${p._row}">&#9998;</button>
+        <button class="btn-icon danger" title="Remove" data-delete-row="${p._row}">&#10005;</button>
       </div>
     </div>`;
 }
@@ -188,14 +173,13 @@ function renderSections() {
 
     return `
       <div class="pax-section">
-        <div class="pax-section-header open" data-partner="${esc(key)}" onclick="toggleSection(this)">
+        <div class="pax-section-header open" data-partner="${esc(key)}">
           <span class="pax-section-title">
             <span class="partner-badge ${pClass} pax-partner-badge">${esc(pName)}</span>
             <span class="pax-count">${paxList.length} passenger${paxList.length !== 1 ? 's' : ''}</span>
           </span>
           <span style="display:flex;align-items:center;gap:10px;">
-            <button class="btn btn-ghost btn-sm pax-section-add"
-                    onclick="event.stopPropagation();openAddModalForPartner('${esc(key)}')">+ Add</button>
+            <button class="btn btn-ghost btn-sm pax-section-add" data-partner="${esc(key)}">+ Add</button>
             <span class="pax-section-arrow">&#9654;</span>
           </span>
         </div>
@@ -203,10 +187,6 @@ function renderSections() {
       </div>`;
   }).join('');
 
-  // Attach checkbox listeners after render
-  document.querySelectorAll('.pax-checkbox').forEach(cb => {
-    cb.addEventListener('change', onCheckboxChange);
-  });
 }
 
 function toggleSection(header) {
@@ -386,7 +366,7 @@ async function handleDeleteConfirm() {
     renderSections();
     updateWeightBar();
   } catch (err) {
-    alert('Remove failed: ' + err.message);
+    $('delete-modal-body').textContent = 'Remove failed: ' + err.message;
   } finally {
     btn.disabled = false; btn.textContent = 'Remove';
   }
@@ -411,17 +391,7 @@ function saveConfig() {
   }
   Config.set({ clientId, sheetId });
   closeConfigModal();
-  initGIS();
-}
-
-// ── Theme ─────────────────────────────────────────────────────────────────────
-const THEME_KEY = '122jm_theme';
-function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  const btn = $('btn-theme');
-  btn.innerHTML = t === 'light' ? '&#9790;' : '&#9728;';
-  btn.title     = t === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
-  localStorage.setItem(THEME_KEY, t);
+  initGIS(onSignedIn, onSignedOut);
 }
 
 // ── Event Bindings ────────────────────────────────────────────────────────────
@@ -469,13 +439,28 @@ function bindEvents() {
     if (e.key === 'Escape')
       [$('pax-modal'), $('delete-modal'), $('config-modal')].forEach(m => m.style.display = 'none');
   });
+
+  // Section-level event delegation
+  $('pax-sections').addEventListener('click', e => {
+    const addBtn = e.target.closest('.pax-section-add');
+    if (addBtn) { openAddModalForPartner(addBtn.dataset.partner); return; }
+
+    const header = e.target.closest('.pax-section-header');
+    if (header) { toggleSection(header); return; }
+
+    const editBtn = e.target.closest('[data-edit-row]');
+    if (editBtn) { openEditModal(parseInt(editBtn.dataset.editRow)); return; }
+
+    const deleteBtn = e.target.closest('[data-delete-row]');
+    if (deleteBtn) { openDeleteModal(parseInt(deleteBtn.dataset.deleteRow)); return; }
+  });
+
+  $('pax-sections').addEventListener('change', e => {
+    if (e.target.matches('.pax-checkbox')) onCheckboxChange(e);
+  });
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 function calcAge(dob) {
   if (!dob) return null;
   const [y, m, d] = dob.split('-').map(Number);
@@ -492,8 +477,3 @@ function formatDob(dob) {
   return `${months[parseInt(m,10)-1]} ${parseInt(d,10)}, ${y}`;
 }
 
-// Expose for inline onclick handlers
-window.openEditModal          = openEditModal;
-window.openDeleteModal        = openDeleteModal;
-window.toggleSection          = toggleSection;
-window.openAddModalForPartner = openAddModalForPartner;

@@ -35,8 +35,6 @@ let deleteTarget   = null;
 
 // ── DOM refs ────────────────────────────────────────────────────────────────
 
-const $ = id => document.getElementById(id);
-
 const authPrompt      = $('auth-prompt');
 const appContent      = $('app-content');
 const btnSignin       = $('btn-signin');
@@ -62,27 +60,10 @@ const configModal = $('config-modal');
 
 // ── Bootstrap ───────────────────────────────────────────────────────────────
 
-window.onGISLoad = function () {
-  Auth.init(onSignedIn, onSignedOut);
-  if (Config.isConfigured()) Auth.signIn();
-};
-
-function initGIS() {
-  const script = document.createElement('script');
-  script.src   = 'https://accounts.google.com/gsi/client';
-  script.async = true;
-  script.defer = true;
-  script.onload = window.onGISLoad;
-  document.head.appendChild(script);
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
-  if (Config.isConfigured()) {
-    initGIS();
-  } else {
-    setTimeout(() => showConfigModal(), 300);
-  }
+  if (Config.isConfigured()) initGIS(onSignedIn, onSignedOut);
+  else setTimeout(() => showConfigModal(), 300);
 });
 
 // ── Auth state handlers ─────────────────────────────────────────────────────
@@ -200,8 +181,8 @@ function renderCards() {
         <div class="contact-card-top">
           <div class="contact-name">${esc(c.name)}</div>
           <div class="contact-card-actions">
-            <button class="btn-icon" title="Edit"   onclick="openEditModal(${c._row})">&#9998;</button>
-            <button class="btn-icon danger" title="Delete" onclick="openDeleteModal(${c._row})">&#10005;</button>
+            <button class="btn-icon" title="Edit"   data-edit-row="${c._row}">&#9998;</button>
+            <button class="btn-icon danger" title="Delete" data-delete-row="${c._row}">&#10005;</button>
           </div>
         </div>
         ${catBadges ? `<div class="contact-cats">${catBadges}</div>` : ''}
@@ -333,7 +314,7 @@ async function handleDeleteConfirm() {
     closeDeleteModal();
     renderCards();
   } catch (err) {
-    alert('Delete failed: ' + err.message);
+    deleteBody.textContent = 'Delete failed: ' + err.message;
   } finally {
     btn.disabled    = false;
     btn.textContent = 'Delete';
@@ -367,7 +348,7 @@ function saveConfig() {
   }
   Config.set({ clientId, sheetId, contactsSheetName });
   closeConfigModal();
-  initGIS();
+  initGIS(onSignedIn, onSignedOut);
 }
 
 // ── Search Autosuggest ────────────────────────────────────────────────────────
@@ -480,23 +461,6 @@ function initSearchAutocomplete() {
   input.addEventListener('blur', () => setTimeout(closeDropdown, 160));
 }
 
-// ── Theme Toggle ─────────────────────────────────────────────────────────────
-
-const THEME_KEY = '122jm_theme';
-
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  const btn = $('btn-theme');
-  if (theme === 'light') {
-    btn.innerHTML = '&#9790;';
-    btn.title = 'Switch to dark mode';
-  } else {
-    btn.innerHTML = '&#9728;';
-    btn.title = 'Switch to light mode';
-  }
-  localStorage.setItem(THEME_KEY, theme);
-}
-
 // ── Event Bindings ────────────────────────────────────────────────────────────
 
 function bindEvents() {
@@ -520,6 +484,14 @@ function bindEvents() {
   // Search + filter
   $('search-input').addEventListener('input',     renderCards);
   $('filter-category').addEventListener('change', renderCards);
+
+  // Contacts grid — delegated: edit/delete buttons
+  contactsGrid.addEventListener('click', e => {
+    const editBtn   = e.target.closest('[data-edit-row]');
+    if (editBtn)   { openEditModal(parseInt(editBtn.dataset.editRow)); return; }
+    const deleteBtn = e.target.closest('[data-delete-row]');
+    if (deleteBtn) { openDeleteModal(parseInt(deleteBtn.dataset.deleteRow)); return; }
+  });
 
   // Search autosuggest
   initSearchAutocomplete();
@@ -558,80 +530,4 @@ function bindEvents() {
   });
 }
 
-// ── Airport Autocomplete (same as app.js) ─────────────────────────────────────
-
-function initAirportAutocomplete(inputId) {
-  const input = $(inputId);
-  let dropdown = null, options = [], activeIdx = -1;
-
-  function createDropdown() {
-    const el = document.createElement('div');
-    el.className = 'airport-dropdown';
-    el.style.display = 'none';
-    input.parentElement.appendChild(el);
-    return el;
-  }
-  function closeDropdown() {
-    if (dropdown) dropdown.style.display = 'none';
-    options = []; activeIdx = -1;
-  }
-  function setActive(idx) {
-    if (!dropdown) return;
-    const items = dropdown.querySelectorAll('.airport-option');
-    items.forEach(o => o.classList.remove('active'));
-    if (idx >= 0 && idx < items.length) {
-      items[idx].classList.add('active');
-      items[idx].scrollIntoView({ block: 'nearest' });
-      activeIdx = idx;
-    } else { activeIdx = -1; }
-  }
-  function selectOption(ap) {
-    input.value = ap.icao;
-    closeDropdown();
-  }
-  function renderDropdown(results) {
-    if (!dropdown) dropdown = createDropdown();
-    if (results.length === 0) { closeDropdown(); return; }
-    options = results; activeIdx = -1;
-    dropdown.innerHTML = results.map((ap, i) =>
-      `<div class="airport-option" data-idx="${i}">
-        <span class="ap-code">${esc(ap.icao)}</span>
-        <span class="ap-detail">${esc(ap.name)} &middot; ${esc(ap.city)}, ${esc(ap.state)}</span>
-      </div>`
-    ).join('');
-    dropdown.querySelectorAll('.airport-option').forEach(item => {
-      item.addEventListener('mousedown', e => {
-        e.preventDefault();
-        selectOption(options[parseInt(item.dataset.idx)]);
-      });
-    });
-    dropdown.style.display = '';
-  }
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim();
-    if (q.length < 2) { closeDropdown(); return; }
-    renderDropdown(Airports.search(q, 8));
-  });
-  input.addEventListener('keydown', e => {
-    if (!dropdown || dropdown.style.display === 'none') return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(Math.min(activeIdx + 1, options.length - 1)); }
-    else if (e.key === 'ArrowUp')   { e.preventDefault(); setActive(Math.max(activeIdx - 1, 0)); }
-    else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); selectOption(options[activeIdx]); }
-    else if (e.key === 'Escape') { closeDropdown(); }
-  });
-  input.addEventListener('blur', () => setTimeout(closeDropdown, 160));
-}
-
-// ── Utilities ─────────────────────────────────────────────────────────────────
-
-function esc(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// Expose for inline onclick handlers
-window.openEditModal   = openEditModal;
-window.openDeleteModal = openDeleteModal;
 

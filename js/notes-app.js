@@ -7,7 +7,6 @@
 // ── Constants ────────────────────────────────────────────────────────────────
 const READ_KEY      = '122jm_read_notes';
 const AUTHOR_KEY    = '122jm_author';
-const THEME_KEY     = '122jm_theme';
 const NOTES_VIEW_KEY = '122jm_notes_view';
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -17,24 +16,10 @@ let deleteTarget = null;
 let notesFilter  = 'all';   // 'all' | 'unread' | 'pinned'
 let notesView    = localStorage.getItem(NOTES_VIEW_KEY) || 'list';  // 'list' | 'cards'
 
-// ── DOM refs ─────────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
-
 // ── Bootstrap ────────────────────────────────────────────────────────────────
-window.onGISLoad = function () {
-  Auth.init(onSignedIn, onSignedOut);
-  if (Config.isConfigured()) Auth.signIn();
-};
-function initGIS() {
-  const s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true; s.defer = true;
-  s.onload = window.onGISLoad;
-  document.head.appendChild(s);
-}
 document.addEventListener('DOMContentLoaded', () => {
   bindEvents();
-  if (Config.isConfigured()) initGIS();
+  if (Config.isConfigured()) initGIS(onSignedIn, onSignedOut);
   else setTimeout(() => showConfigModal(), 300);
 });
 
@@ -166,7 +151,7 @@ function buildNoteCard(n, readIds) {
       const snippetHtml = linkify(bodyLines.slice(0, NOTE_PREVIEW_LINES).join('\n'));
       const fullHtml    = linkify(body);
       bodyHtml = `
-      <div class="note-body"><div class="note-body-text"><span class="note-body-preview">${snippetHtml}<span class="note-body-ellipsis"> …</span></span><span class="note-body-full" style="display:none;">${fullHtml}</span></div><button class="note-expand-btn" onclick="toggleNoteBody(this)" aria-expanded="false">more</button></div>`;
+      <div class="note-body"><div class="note-body-text"><span class="note-body-preview">${snippetHtml}<span class="note-body-ellipsis"> …</span></span><span class="note-body-full" style="display:none;">${fullHtml}</span></div><button class="note-expand-btn" data-action="toggle-body" aria-expanded="false">more</button></div>`;
     } else {
       bodyHtml = `<div class="note-body">${linkify(body)}</div>`;
     }
@@ -178,16 +163,16 @@ function buildNoteCard(n, readIds) {
         <div class="note-title">${linkify(title)}</div>
         <div class="note-card-btns">
           <button class="${pinCls}" title="${n.pinned ? 'Unpin' : 'Pin'}"
-                  onclick="togglePin(${n._row})">${pinIcon}</button>
-          <button class="btn-icon" title="Edit"   onclick="openEditModal(${n._row})">&#9998;</button>
-          <button class="btn-icon danger" title="Delete" onclick="openDeleteModal(${n._row})">&#10005;</button>
+                  data-pin-row="${n._row}">${pinIcon}</button>
+          <button class="btn-icon" title="Edit"   data-edit-row="${n._row}">&#9998;</button>
+          <button class="btn-icon danger" title="Delete" data-delete-row="${n._row}">&#10005;</button>
         </div>
       </div>
       ${bodyHtml}
       ${urlHtml}
       <div class="note-meta">
         <span class="note-byline">${esc(n.author || 'Anonymous')} &middot; ${formatDateTime(n.created)}</span>
-        <button class="note-read-btn" onclick="toggleRead('${esc(n.id)}', ${n._row})">${readLbl}</button>
+        <button class="note-read-btn" data-read-id="${esc(n.id)}" data-read-row="${n._row}">${readLbl}</button>
       </div>
     </div>`;
 }
@@ -279,7 +264,7 @@ async function togglePin(sheetRow) {
     if (idx !== -1) allNotes[idx] = updated;
     renderNotes();
   } catch (err) {
-    alert('Could not update note: ' + err.message);
+    console.error('Could not update note:', err.message);
   }
 }
 
@@ -390,7 +375,7 @@ async function handleDeleteConfirm() {
     closeDeleteModal();
     renderNotes();
   } catch (err) {
-    alert('Delete failed: ' + err.message);
+    $('delete-modal-body').textContent = 'Delete failed: ' + err.message;
   } finally {
     btn.disabled = false; btn.textContent = 'Delete';
   }
@@ -415,7 +400,7 @@ function saveConfig() {
   }
   Config.set({ clientId, sheetId });
   closeConfigModal();
-  initGIS();
+  initGIS(onSignedIn, onSignedOut);
 }
 
 // ── View toggle (list / cards) ─────────────────────────────────────────────────
@@ -435,15 +420,6 @@ function applyNotesView(view) {
   localStorage.setItem(NOTES_VIEW_KEY, view);
   setNotesViewBtn(view);
   renderNotes();
-}
-
-// ── Theme ─────────────────────────────────────────────────────────────────────
-function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t);
-  const btn = $('btn-theme');
-  btn.innerHTML = t === 'light' ? '&#9790;' : '&#9728;';
-  btn.title     = t === 'light' ? 'Switch to dark mode' : 'Switch to light mode';
-  localStorage.setItem(THEME_KEY, t);
 }
 
 // ── Event Bindings ────────────────────────────────────────────────────────────
@@ -503,13 +479,27 @@ function bindEvents() {
     if (e.key === 'Escape')
       [$('note-modal'), $('delete-modal'), $('config-modal')].forEach(m => m.style.display = 'none');
   });
+
+  // Notes grid event delegation
+  $('notes-grid').addEventListener('click', e => {
+    const pinBtn = e.target.closest('[data-pin-row]');
+    if (pinBtn) { togglePin(parseInt(pinBtn.dataset.pinRow)); return; }
+
+    const editBtn = e.target.closest('[data-edit-row]');
+    if (editBtn) { openEditModal(parseInt(editBtn.dataset.editRow)); return; }
+
+    const deleteBtn = e.target.closest('[data-delete-row]');
+    if (deleteBtn) { openDeleteModal(parseInt(deleteBtn.dataset.deleteRow)); return; }
+
+    const readBtn = e.target.closest('[data-read-id]');
+    if (readBtn) { toggleRead(readBtn.dataset.readId, parseInt(readBtn.dataset.readRow)); return; }
+
+    const expandBtn = e.target.closest('[data-action="toggle-body"]');
+    if (expandBtn) { toggleNoteBody(expandBtn); return; }
+  });
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 function formatDateTime(iso) {
   if (!iso) return '';
   try {
@@ -520,14 +510,8 @@ function formatDateTime(iso) {
   } catch { return iso; }
 }
 
-// Expose for inline onclick handlers
-window.openEditModal   = openEditModal;
-window.openDeleteModal = openDeleteModal;
-window.togglePin       = togglePin;
-window.toggleRead      = toggleRead;
-
 /** Expand / collapse a long note body in-place (no re-render). */
-window.toggleNoteBody = function(btn) {
+function toggleNoteBody(btn) {
   const noteBody = btn.closest('.note-body');
   const preview  = noteBody.querySelector('.note-body-preview');
   const full     = noteBody.querySelector('.note-body-full');
@@ -546,4 +530,4 @@ window.toggleNoteBody = function(btn) {
     btn.textContent       = 'less';
     btn.setAttribute('aria-expanded', 'true');
   }
-};
+}
