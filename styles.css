@@ -1505,6 +1505,266 @@ html[data-theme="light"] .rl-detail-code-badge {
   color: #fff !important;
 }
 
+/* ── Aircraft Page ── */
+
+.ac-section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.ac-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.ac-section-toggle:hover { background: var(--bg3); }
+
+.ac-section-icon { font-size: 1.15rem; }
+.ac-section-title { flex: 1; text-align: left; }
+
+.ac-section-chevron {
+  font-size: .75rem;
+  color: var(--text3);
+  transition: transform .2s;
+}
+.ac-section-toggle[aria-expanded="false"] .ac-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.ac-section-body {
+  padding: 0 20px 20px;
+  transition: max-height .3s ease, opacity .2s ease, padding .2s ease;
+  max-height: 2000px;
+  opacity: 1;
+  overflow: hidden;
+}
+.ac-section-body.ac-collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ── Aircraft ID bar ── */
+.ac-id-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border-radius: var(--radius);
+}
+.ac-id-reg {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: .04em;
+}
+.ac-id-detail {
+  font-size: .85rem;
+  color: var(--text2);
+}
+
+/* ── Sub headings ── */
+.ac-sub-heading {
+  font-size: .8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
+  margin: 20px 0 10px;
+}
+.ac-sub-heading:first-child { margin-top: 0; }
+
+/* ── V-Speeds grid ── */
+.ac-vspeeds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+.ac-vspeed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px;
+  background: var(--bg3);
+  border-radius: 6px;
+  border-left: 3px solid var(--border);
+}
+.ac-vspeed-caution { border-left-color: var(--amber); }
+.ac-vspeed-good    { border-left-color: var(--success); }
+.ac-vspeed-danger  { border-left-color: var(--danger); }
+
+.ac-vspeed-name {
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+}
+.ac-vspeed-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.ac-vspeed-note {
+  font-size: .65rem;
+  color: var(--text3);
+}
+
+/* ── Spec tables ── */
+.ac-spec-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.ac-spec-table td {
+  padding: 8px 12px;
+  font-size: .85rem;
+  border-bottom: 1px solid var(--border);
+}
+.ac-spec-table td:first-child {
+  color: var(--text2);
+  width: 45%;
+  white-space: nowrap;
+}
+.ac-spec-table td:last-child {
+  color: var(--text);
+  font-weight: 500;
+}
+.ac-spec-table tr:last-child td { border-bottom: none; }
+
+/* ── Badge ── */
+.ac-badge-info {
+  display: inline-block;
+  font-size: .65rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: .02em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+/* ── Disclaimer ── */
+.ac-disclaimer {
+  font-size: .72rem;
+  color: var(--text3);
+  font-style: italic;
+  margin-top: 16px;
+}
+
+/* ── Auth gate ── */
+.ac-auth-gate {
+  padding: 24px;
+  text-align: center;
+  color: var(--text3);
+  font-size: .9rem;
+}
+
+/* ── Editable fields ── */
+.ac-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.ac-field-group {
+  display: flex;
+  flex-direction: column;
+}
+.ac-field-full { grid-column: 1 / -1; }
+
+.ac-field-group label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.ac-field-input {
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: .88rem;
+  transition: border-color .15s;
+}
+.ac-field-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.ac-field-readonly {
+  color: var(--text2);
+  cursor: default;
+}
+
+.ac-field-textarea {
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: .85rem;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color .15s;
+}
+.ac-field-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.ac-field-hint {
+  font-size: .7rem;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+.ac-field-status {
+  display: inline-block;
+  font-size: .72rem;
+  min-height: 1.2em;
+  margin-top: 4px;
+  transition: opacity .2s;
+}
+.ac-field-saving { color: var(--text3); }
+.ac-field-saved  { color: var(--success); }
+.ac-field-error  { color: var(--danger); }
+
+/* ── Date badges ── */
+.ac-date-badge {
+  display: inline-block;
+  font-size: .68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+.ac-date-overdue  { background: var(--danger);  color: #fff; }
+.ac-date-soon     { background: var(--amber);   color: #000; }
+.ac-date-upcoming { background: var(--bg3);     color: var(--amber); }
+.ac-date-ok       { background: var(--bg3);     color: var(--text3); }
+
 /* ── Responsive ── */
 /* ── Mobile Floating Action Button ── */
 .fab-log-flight { display: none; }   /* desktop: hidden */
@@ -1598,4 +1858,12 @@ html[data-theme="light"] .rl-detail-code-badge {
   .rl-rwy-cell { display: none; }
   .rl-name-cell { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rl-detail-stats { grid-template-columns: 1fr 1fr; }
+
+  /* ── Aircraft page mobile ── */
+  .ac-field-row { grid-template-columns: 1fr; }
+  .ac-vspeeds-grid { grid-template-columns: repeat(3, 1fr); }
+  .ac-spec-table td:first-child { width: auto; }
+  .ac-id-bar { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .ac-section-toggle { padding: 14px 16px; }
+  .ac-section-body { padding: 0 16px 16px; }
 }
