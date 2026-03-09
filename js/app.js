@@ -197,6 +197,16 @@ function renderDashboard() {
   statLandings.textContent = totalLandings;
   statCycles.textContent   = totalCycles;
 
+  // Update collapsed-summary one-liner
+  const summaryEl = $('dashboard-toggle-summary');
+  if (summaryEl) {
+    summaryEl.textContent =
+      'Hobbs ' + last.hobbsEnd.toFixed(1) +
+      '  ·  ' + hobbsFlown.toFixed(1) + ' h flown' +
+      '  ·  ' + flights.length + ' flights' +
+      '  ·  ' + totalLandings + ' landings';
+  }
+
   // Period sub-label under "Hours Flown"
   const periodNames = { all:'all time', ytd:'year to date', '90d':'last 90 days', custom:'custom range' };
   $('stat-hobbs-period').textContent = periodNames[dashRange] || '';
@@ -1035,3 +1045,27 @@ function toggleMonthSection(yearMonth) {
     row.style.display = nowCollapsed ? 'none' : '';
   });
 };
+
+// ── Dashboard collapse toggle ────────────────────────────────────────────
+(function initDashboardToggle() {
+  const toggle = $('dashboard-toggle');
+  const body   = $('dashboard-body');
+  if (!toggle || !body) return;
+
+  const KEY = '122jm_dash_collapsed';
+  const collapsed = localStorage.getItem(KEY) !== 'false'; // default collapsed
+
+  function apply(isCollapsed) {
+    body.classList.toggle('collapsed', isCollapsed);
+    body.classList.toggle('expanded', !isCollapsed);
+    toggle.setAttribute('aria-expanded', String(!isCollapsed));
+    localStorage.setItem(KEY, String(isCollapsed));
+  }
+
+  apply(collapsed);
+
+  toggle.addEventListener('click', () => {
+    const isNowCollapsed = body.classList.contains('expanded');
+    apply(isNowCollapsed);
+  });
+})();

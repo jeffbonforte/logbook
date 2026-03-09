@@ -174,6 +174,60 @@ body {
 /* ── Dashboard ── */
 .dashboard { margin-bottom: 24px; }
 
+/* Dashboard collapse toggle */
+.dashboard-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: .85rem;
+  font-weight: 600;
+  transition: background .15s;
+}
+.dashboard-toggle:hover { background: var(--bg3); }
+.dashboard-toggle-label { margin-right: 10px; white-space: nowrap; }
+.dashboard-toggle-summary {
+  flex: 1;
+  font-weight: 400;
+  color: var(--text3);
+  font-size: .8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-toggle-chevron {
+  font-size: .7rem;
+  color: var(--text3);
+  transition: transform .2s;
+  margin-left: 8px;
+}
+.dashboard-toggle[aria-expanded="true"] .dashboard-toggle-chevron {
+  transform: rotate(180deg);
+}
+.dashboard-toggle[aria-expanded="true"] .dashboard-toggle-summary {
+  display: none;
+}
+
+.dashboard-body {
+  overflow: hidden;
+  transition: max-height .25s ease, opacity .2s ease, margin-top .25s ease;
+}
+.dashboard-body.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+.dashboard-body.expanded {
+  max-height: 800px;
+  opacity: 1;
+  margin-top: 14px;
+}
+
 /* Date range bar */
 .range-bar {
   display: flex;
