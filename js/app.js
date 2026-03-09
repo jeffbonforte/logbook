@@ -197,14 +197,16 @@ function renderDashboard() {
   statLandings.textContent = totalLandings;
   statCycles.textContent   = totalCycles;
 
-  // Update collapsed-summary one-liner
-  const summaryEl = $('dashboard-toggle-summary');
-  if (summaryEl) {
-    summaryEl.textContent =
-      'Hobbs ' + last.hobbsEnd.toFixed(1) +
-      '  ·  ' + hobbsFlown.toFixed(1) + ' h flown' +
-      '  ·  ' + flights.length + ' flights' +
-      '  ·  ' + totalLandings + ' landings';
+  // Update collapsed-summary pills
+  const pillHobbs    = $('pill-hobbs-val');
+  const pillHours    = $('pill-hours-val');
+  const pillFlights  = $('pill-flights-val');
+  const pillLandings = $('pill-landings-val');
+  if (pillHobbs) {
+    pillHobbs.textContent    = last.hobbsEnd.toFixed(1);
+    pillHours.textContent    = hobbsFlown.toFixed(1) + ' h';
+    pillFlights.textContent  = flights.length;
+    pillLandings.textContent = totalLandings;
   }
 
   // Period sub-label under "Hours Flown"
