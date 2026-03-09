@@ -496,11 +496,77 @@ const Sheets = (() => {
     }
   }
 
+  // ── Aircraft (key-value store) ────────────────────────────────────────────
+
+  // Column layout: A=Field  B=Value  C=Updated  D=UpdatedBy
+  const AC_HEADERS = ['Field', 'Value', 'Updated', 'UpdatedBy'];
+  function acSheetName() { return Config.get('aircraftSheetName') || 'Aircraft'; }
+  function acRange(r)    { return `${acSheetName()}!${r}`; }
+
+  async function ensureAircraftHeaders() {
+    const data = await apiFetch(`/values/${encodeURIComponent(acRange('A1:D1'))}`);
+    if (!((data.values || [])[0] || []).length) {
+      await apiFetch(`/values/${encodeURIComponent(acRange('A1:D1'))}?valueInputOption=RAW`, {
+        method: 'PUT', body: JSON.stringify({ values: [AC_HEADERS] }),
+      });
+    }
+  }
+
+  /** Fetch all aircraft key-value pairs. Returns { field: { value, updated, updatedBy } } */
+  async function fetchAllAircraftData() {
+    await ensureAircraftHeaders();
+    const data = await apiFetch(`/values/${encodeURIComponent(acRange('A2:D'))}`);
+    const result = {};
+    (data.values || []).forEach(r => {
+      const field = (r[0] || '').trim();
+      if (field) {
+        result[field] = {
+          value:     (r[1] || '').trim(),
+          updated:   (r[2] || '').trim(),
+          updatedBy: (r[3] || '').trim(),
+        };
+      }
+    });
+    return result;
+  }
+
+  /**
+   * Insert or update an aircraft field. If the field already exists, update its row;
+   * otherwise append a new row.
+   */
+  async function upsertAircraftField({ field, value, updatedBy }) {
+    await ensureAircraftHeaders();
+    const row = [
+      (field || '').trim(),
+      value || '',
+      new Date().toISOString(),
+      updatedBy || '',
+    ];
+
+    const existing = await apiFetch(`/values/${encodeURIComponent(acRange('A2:A'))}`);
+    const fields = (existing.values || []).map(r => (r[0] || '').trim());
+    const idx    = fields.indexOf(row[0]);
+
+    if (idx >= 0) {
+      const sheetRow = idx + 2;
+      await apiFetch(
+        `/values/${encodeURIComponent(acRange(`A${sheetRow}:D${sheetRow}`))}?valueInputOption=USER_ENTERED`,
+        { method: 'PUT', body: JSON.stringify({ values: [row] }) }
+      );
+    } else {
+      await apiFetch(
+        `/values/${encodeURIComponent(acRange('A:D'))}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+        { method: 'POST', body: JSON.stringify({ values: [row] }) }
+      );
+    }
+  }
+
   return {
     fetchAll, appendFlight, updateFlight, deleteFlight,
     fetchAllContacts, appendContact, updateContact, deleteContact,
     fetchAllPassengers, appendPassenger, updatePassenger, deletePassenger,
     fetchAllNotes, appendNote, updateNote, deleteNote,
     fetchAllAirportNotes, upsertAirportNote,
+    fetchAllAircraftData, upsertAircraftField,
   };
 })();

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>122JM Aircraft — Pilatus PC-12</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script>(function(){ var t=localStorage.getItem('122jm_theme')||'dark'; document.documentElement.setAttribute('data-theme',t); })();</script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="tail-number">N122JM</span>
+        <div class="header-subtitle">
+          <span>2015 Pilatus PC-12</span><span class="sep">&middot;</span><span>Aircraft</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-theme" class="btn btn-ghost btn-sm">&#9790;</button>
+        <div id="auth-section">
+          <button id="btn-signin" class="btn btn-secondary">Sign in with Google</button>
+          <button id="btn-signout" class="btn btn-ghost" style="display:none;">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="app-nav">
+    <a href="index.html"      class="nav-tab">&#9992; Flight Log</a>
+    <a href="contacts.html"   class="nav-tab">&#9742; Contacts</a>
+    <a href="passengers.html" class="nav-tab">Passengers</a>
+    <a href="notes.html"      class="nav-tab">Notes</a>
+    <a href="aircraft.html"   class="nav-tab active">Aircraft</a>
+  </nav>
+
+  <main class="app-main">
+
+    <!-- ── Quick Reference Card ── -->
+    <section class="ac-section" id="ac-ref">
+      <button class="ac-section-toggle" aria-expanded="true" data-section="ac-ref-body">
+        <span class="ac-section-icon">&#9992;</span>
+        <span class="ac-section-title">Quick Reference</span>
+        <span class="ac-section-chevron">&#9662;</span>
+      </button>
+      <div class="ac-section-body" id="ac-ref-body">
+
+        <div class="ac-id-bar">
+          <span class="ac-id-reg">N122JM</span>
+          <span class="ac-id-detail">2015 Pilatus PC-12/47E</span>
+          <span class="ac-id-detail">S/N 1523</span>
+        </div>
+
+        <h4 class="ac-sub-heading">V-Speeds</h4>
+        <div class="ac-vspeeds-grid">
+          <div class="ac-vspeed ac-vspeed-caution">
+            <span class="ac-vspeed-name">V<sub>S0</sub></span>
+            <span class="ac-vspeed-val">67</span>
+            <span class="ac-vspeed-note">Stall (ldg)</span>
+          </div>
+          <div class="ac-vspeed ac-vspeed-caution">
+            <span class="ac-vspeed-name">V<sub>S1</sub></span>
+            <span class="ac-vspeed-val">91</span>
+            <span class="ac-vspeed-note">Stall (clean)</span>
+          </div>
+          <div class="ac-vspeed">
+            <span class="ac-vspeed-name">V<sub>R</sub></span>
+            <span class="ac-vspeed-val">76</span>
+            <span class="ac-vspeed-note">Rotation</span>
+          </div>
+          <div class="ac-vspeed">
+            <span class="ac-vspeed-name">V<sub>REF</sub></span>
+            <span class="ac-vspeed-val">80</span>
+            <span class="ac-vspeed-note">Final approach</span>
+          </div>
+          <div class="ac-vspeed ac-vspeed-good">
+            <span class="ac-vspeed-name">V<sub>X</sub></span>
+            <span class="ac-vspeed-val">120</span>
+            <span class="ac-vspeed-note">Best angle</span>
+          </div>
+          <div class="ac-vspeed ac-vspeed-good">
+            <span class="ac-vspeed-name">V<sub>Y</sub></span>
+            <span class="ac-vspeed-val">130</span>
+            <span class="ac-vspeed-note">Best rate</span>
+          </div>
+          <div class="ac-vspeed">
+            <span class="ac-vspeed-name">V<sub>FE</sub></span>
+            <span class="ac-vspeed-val">165 / 130</span>
+            <span class="ac-vspeed-note">Flaps 15 / 30+</span>
+          </div>
+          <div class="ac-vspeed">
+            <span class="ac-vspeed-name">V<sub>A</sub></span>
+            <span class="ac-vspeed-val">166</span>
+            <span class="ac-vspeed-note">Maneuvering</span>
+          </div>
+          <div class="ac-vspeed">
+            <span class="ac-vspeed-name">V<sub>LO</sub></span>
+            <span class="ac-vspeed-val">180</span>
+            <span class="ac-vspeed-note">Gear operating</span>
+          </div>
+          <div class="ac-vspeed ac-vspeed-danger">
+            <span class="ac-vspeed-name">V<sub>MO</sub></span>
+            <span class="ac-vspeed-val">240</span>
+            <span class="ac-vspeed-note">Max operating</span>
+          </div>
+          <div class="ac-vspeed ac-vspeed-danger">
+            <span class="ac-vspeed-name">M<sub>MO</sub></span>
+            <span class="ac-vspeed-val">M 0.49</span>
+            <span class="ac-vspeed-note">Above FL163</span>
+          </div>
+          <div class="ac-vspeed">
+            <span class="ac-vspeed-name">V<sub>LE</sub></span>
+            <span class="ac-vspeed-val">240</span>
+            <span class="ac-vspeed-note">Gear extended</span>
+          </div>
+        </div>
+
+        <h4 class="ac-sub-heading">Key Weights</h4>
+        <table class="ac-spec-table">
+          <tbody>
+            <tr><td>MTOW</td><td>10,450 lbs</td></tr>
+            <tr><td>Max Ramp</td><td>10,495 lbs</td></tr>
+            <tr><td>Max Landing</td><td>9,921 lbs</td></tr>
+            <tr><td>Max Zero Fuel</td><td>9,039 lbs</td></tr>
+            <tr><td>Useful Load</td><td>~4,021 lbs</td></tr>
+            <tr><td>Fuel Capacity</td><td>402 gal / ~2,700 lbs</td></tr>
+            <tr><td>Payload w/ Full Fuel</td><td>~1,175 lbs</td></tr>
+          </tbody>
+        </table>
+
+        <p class="ac-disclaimer">Reference only &mdash; always verify against the aircraft POH.</p>
+      </div>
+    </section>
+
+    <!-- ── Performance & Specs ── -->
+    <section class="ac-section" id="ac-perf">
+      <button class="ac-section-toggle" aria-expanded="true" data-section="ac-perf-body">
+        <span class="ac-section-icon">&#9201;</span>
+        <span class="ac-section-title">Performance &amp; Specs</span>
+        <span class="ac-section-chevron">&#9662;</span>
+      </button>
+      <div class="ac-section-body" id="ac-perf-body">
+
+        <h4 class="ac-sub-heading">Performance <span class="ac-badge-info">5-blade prop</span></h4>
+        <table class="ac-spec-table">
+          <tbody>
+            <tr><td>Max Cruise</td><td>~287 KTAS</td></tr>
+            <tr><td>Economy Cruise</td><td>~255 KTAS</td></tr>
+            <tr><td>Long Range Cruise</td><td>~225 KTAS</td></tr>
+            <tr><td>Range (NBAA IFR, 4 pax)</td><td>~1,600 NM</td></tr>
+            <tr><td>Service Ceiling</td><td>30,000 ft</td></tr>
+            <tr><td>Rate of Climb</td><td>~2,020 FPM</td></tr>
+            <tr><td>Time to FL250</td><td>~24 min</td></tr>
+            <tr><td>Takeoff Distance (50 ft)</td><td>~2,430 ft</td></tr>
+            <tr><td>Landing Distance (50 ft)</td><td>~2,170 ft</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="ac-sub-heading">Fuel</h4>
+        <table class="ac-spec-table">
+          <tbody>
+            <tr><td>Usable Fuel</td><td>402 US gal</td></tr>
+            <tr><td>Fuel Weight</td><td>~2,700 lbs (Jet-A)</td></tr>
+            <tr><td>Burn &mdash; High Cruise</td><td>~60&ndash;66 GPH</td></tr>
+            <tr><td>Burn &mdash; Economy</td><td>~54 GPH</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="ac-sub-heading">Engine &amp; Propeller</h4>
+        <table class="ac-spec-table">
+          <tbody>
+            <tr><td>Engine</td><td>Pratt &amp; Whitney PT6A-67P</td></tr>
+            <tr><td>Max SHP</td><td>1,200 SHP (flat rated)</td></tr>
+            <tr><td>Engine TBO</td><td>3,500 hours</td></tr>
+            <tr><td>HSI Interval</td><td>~1,750 hours</td></tr>
+            <tr><td>Propeller</td><td>Hartzell HC-E5A-3A / NC10245B</td></tr>
+            <tr><td>Prop Type</td><td>5-blade ASC-II composite, swept-tip</td></tr>
+            <tr><td>Prop STC</td><td>SA03466CH</td></tr>
+            <tr><td>Prop TBO</td><td>4,000 hours / 6 years</td></tr>
+            <tr><td>Blade Life</td><td>Unlimited (composite)</td></tr>
+          </tbody>
+        </table>
+
+        <h4 class="ac-sub-heading">Dimensions</h4>
+        <table class="ac-spec-table">
+          <tbody>
+            <tr><td>Wingspan</td><td>53 ft 4 in</td></tr>
+            <tr><td>Length</td><td>47 ft 3 in</td></tr>
+            <tr><td>Height</td><td>14 ft</td></tr>
+            <tr><td>Cabin Length</td><td>16 ft 11 in</td></tr>
+            <tr><td>Cabin Width</td><td>5 ft 0 in</td></tr>
+            <tr><td>Cabin Height</td><td>4 ft 10 in</td></tr>
+            <tr><td>Cabin Volume</td><td>330 cu ft</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Maintenance & Status ── -->
+    <section class="ac-section" id="ac-mx">
+      <button class="ac-section-toggle" aria-expanded="true" data-section="ac-mx-body">
+        <span class="ac-section-icon">&#128295;</span>
+        <span class="ac-section-title">Maintenance &amp; Status</span>
+        <span class="ac-section-chevron">&#9662;</span>
+      </button>
+      <div class="ac-section-body" id="ac-mx-body">
+
+        <div id="ac-auth-gate-mx" class="ac-auth-gate">
+          <p>Sign in to view and edit maintenance data.</p>
+        </div>
+
+        <div id="ac-mx-content" style="display:none;">
+          <div class="ac-field-row">
+            <div class="ac-field-group">
+              <label for="ac-engine-hours">Engine Hours (Hobbs)</label>
+              <input type="text" id="ac-engine-hours" class="ac-field-input" placeholder="Auto from flight log" readonly />
+              <span class="ac-field-hint">From latest flight log entry</span>
+            </div>
+            <div class="ac-field-group">
+              <label for="ac-prop-hours">Prop Hours</label>
+              <input type="text" id="ac-prop-hours" class="ac-field-input" data-field="Prop Hours" placeholder="e.g. 2450" />
+              <span class="ac-field-status"></span>
+            </div>
+          </div>
+
+          <div class="ac-field-row">
+            <div class="ac-field-group">
+              <label for="ac-next-annual">Next Annual Inspection</label>
+              <input type="date" id="ac-next-annual" class="ac-field-input" data-field="Next Annual" />
+              <span class="ac-field-status"></span>
+            </div>
+            <div class="ac-field-group">
+              <label for="ac-next-phase">Next Phase Inspection</label>
+              <input type="date" id="ac-next-phase" class="ac-field-input" data-field="Next Phase" />
+              <span class="ac-field-status"></span>
+            </div>
+          </div>
+
+          <div class="ac-field-group ac-field-full">
+            <label for="ac-squawks">Current Squawks / MEL Items</label>
+            <textarea id="ac-squawks" class="ac-field-textarea" data-field="Squawks" rows="4"
+                      placeholder="List any current squawks or MEL items..."></textarea>
+            <span class="ac-field-status"></span>
+          </div>
+
+          <div class="ac-field-group ac-field-full">
+            <label for="ac-mx-notes">Maintenance Notes</label>
+            <textarea id="ac-mx-notes" class="ac-field-textarea" data-field="Maintenance Notes" rows="4"
+                      placeholder="General maintenance notes, upcoming work, etc."></textarea>
+            <span class="ac-field-status"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Ownership & Admin ── -->
+    <section class="ac-section" id="ac-admin">
+      <button class="ac-section-toggle" aria-expanded="true" data-section="ac-admin-body">
+        <span class="ac-section-icon">&#128196;</span>
+        <span class="ac-section-title">Ownership &amp; Admin</span>
+        <span class="ac-section-chevron">&#9662;</span>
+      </button>
+      <div class="ac-section-body" id="ac-admin-body">
+
+        <div id="ac-auth-gate-admin" class="ac-auth-gate">
+          <p>Sign in to view and edit ownership details.</p>
+        </div>
+
+        <div id="ac-admin-content" style="display:none;">
+          <div class="ac-field-row">
+            <div class="ac-field-group">
+              <label>Serial Number</label>
+              <input type="text" class="ac-field-input ac-field-readonly" value="1523" readonly />
+            </div>
+            <div class="ac-field-group">
+              <label>Registration</label>
+              <input type="text" class="ac-field-input ac-field-readonly" value="N122JM" readonly />
+            </div>
+          </div>
+
+          <div class="ac-field-row">
+            <div class="ac-field-group">
+              <label for="ac-home-airport">Home Airport</label>
+              <input type="text" id="ac-home-airport" class="ac-field-input" data-field="Home Airport" placeholder="e.g. KPAO" />
+              <span class="ac-field-status"></span>
+            </div>
+            <div class="ac-field-group">
+              <label for="ac-mgmt-company">Management Company</label>
+              <input type="text" id="ac-mgmt-company" class="ac-field-input" data-field="Management Company" placeholder="e.g. Acme Aviation" />
+              <span class="ac-field-status"></span>
+            </div>
+          </div>
+
+          <div class="ac-field-row">
+            <div class="ac-field-group">
+              <label for="ac-insurance">Insurance Provider</label>
+              <input type="text" id="ac-insurance" class="ac-field-input" data-field="Insurance Provider" placeholder="e.g. Global Aerospace" />
+              <span class="ac-field-status"></span>
+            </div>
+            <div class="ac-field-group">
+              <label for="ac-insurance-exp">Insurance Expiry</label>
+              <input type="date" id="ac-insurance-exp" class="ac-field-input" data-field="Insurance Expiry" />
+              <span class="ac-field-status"></span>
+            </div>
+          </div>
+
+          <div class="ac-field-group ac-field-full">
+            <label for="ac-partnership-notes">Partnership Notes</label>
+            <textarea id="ac-partnership-notes" class="ac-field-textarea" data-field="Partnership Notes" rows="4"
+                      placeholder="Partnership structure, scheduling rules, cost sharing, etc."></textarea>
+            <span class="ac-field-status"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Config Modal -->
+  <div id="config-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Google Sheets Setup</h2>
+        <button class="modal-close" id="config-modal-close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <p class="config-intro">Enter your Google Sheets credentials.</p>
+        <div class="form-group">
+          <label for="cfg-client-id">OAuth Client ID</label>
+          <input type="text" id="cfg-client-id" placeholder="xxxx.apps.googleusercontent.com" />
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label for="cfg-sheet-id">Spreadsheet ID</label>
+          <input type="text" id="cfg-sheet-id" />
+        </div>
+        <div id="config-error" class="form-error" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="config-cancel">Cancel</button>
+        <button class="btn btn-primary" id="config-save">Save &amp; Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <button class="btn btn-ghost btn-sm" id="btn-settings">&#9881; Sheets Settings</button>
+    <span class="footer-note">122JM &middot; N122JM &middot; 2015 Pilatus PC-12</span>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/airports.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/sheets.js"></script>
+  <script src="js/bootstrap.js"></script>
+  <script src="js/aircraft-app.js"></script>
+</body>
+</html>
