@@ -1388,8 +1388,15 @@ html[data-theme="light"] .rl-code-chip {
   border-bottom: 1px solid var(--border);
   margin-bottom: 20px;
 }
-.rl-detail-topbar-right { display: flex; gap: 8px; align-items: center; }
-#rl-maps-btn { text-decoration: none; }
+/* External links under airport name */
+.rl-detail-links { display: flex; gap: 12px; margin-top: 6px; }
+.rl-ext-link {
+  font-size: .78rem;
+  color: var(--primary-h);
+  text-decoration: none;
+  transition: color .15s;
+}
+.rl-ext-link:hover { color: var(--text); text-decoration: underline; }
 .rl-detail-card { display: flex; flex-direction: column; gap: 24px; }
 
 .rl-detail-hero {

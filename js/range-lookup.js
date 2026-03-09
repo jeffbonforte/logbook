@@ -113,16 +113,9 @@ function renderRangeDetail(code) {
   $('range-detail-view').innerHTML = `
     <div class="rl-detail-topbar">
       <button class="btn btn-ghost btn-sm" id="rl-back-btn">← Back</button>
-      <div class="rl-detail-topbar-right">
-        <a class="btn btn-ghost btn-sm" id="rl-maps-btn"
-           href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ap.name + ' ' + (ap.city || '') + ' ' + (ap.state || ap.country || ''))}"
-           target="_blank" rel="noopener">
-          &#9871; Maps
-        </a>
-        <button class="btn btn-secondary btn-sm" data-copy-code="${esc(ap.code)}" id="rl-copy-btn">
-          ⎘ Copy ${esc(ap.code)}
-        </button>
-      </div>
+      <button class="btn btn-secondary btn-sm" data-copy-code="${esc(ap.code)}" id="rl-copy-btn">
+        ⎘ Copy ${esc(ap.code)}
+      </button>
     </div>
 
     <div class="rl-detail-card">
@@ -131,6 +124,9 @@ function renderRangeDetail(code) {
         <div class="rl-detail-hero-text">
           <h2 class="rl-detail-airport-name">${esc(ap.name)}</h2>
           ${loc ? `<p class="rl-detail-location">${esc(loc)}</p>` : ''}
+          <div class="rl-detail-links">
+            <a class="rl-ext-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ap.name + ' ' + (ap.city || '') + ' ' + (ap.state || ap.country || ''))}" target="_blank" rel="noopener">View on Google Maps &#8599;</a>
+          </div>
         </div>
       </div>
 
