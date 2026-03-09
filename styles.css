@@ -1388,6 +1388,8 @@ html[data-theme="light"] .rl-code-chip {
   border-bottom: 1px solid var(--border);
   margin-bottom: 20px;
 }
+.rl-detail-topbar-right { display: flex; gap: 8px; align-items: center; }
+#rl-maps-btn { text-decoration: none; }
 .rl-detail-card { display: flex; flex-direction: column; gap: 24px; }
 
 .rl-detail-hero {
