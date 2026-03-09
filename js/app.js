@@ -198,15 +198,11 @@ function renderDashboard() {
   statCycles.textContent   = totalCycles;
 
   // Update collapsed-summary pills
-  const pillHobbs    = $('pill-hobbs-val');
   const pillHours    = $('pill-hours-val');
   const pillFlights  = $('pill-flights-val');
-  const pillLandings = $('pill-landings-val');
-  if (pillHobbs) {
-    pillHobbs.textContent    = last.hobbsEnd.toFixed(1);
+  if (pillHours) {
     pillHours.textContent    = hobbsFlown.toFixed(1) + ' h';
     pillFlights.textContent  = flights.length;
-    pillLandings.textContent = totalLandings;
   }
 
   // Period sub-label under "Hours Flown"
