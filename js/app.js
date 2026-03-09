@@ -34,9 +34,6 @@ const rowCountEl   = $('row-count');
 // Dashboard
 const statHobbs        = $('stat-hobbs');
 const statFlights      = $('stat-flights');
-const statLandings     = $('stat-landings');
-const statCycles       = $('stat-cycles');
-const statCurrentHobbs = $('stat-current-hobbs');
 const partnerGrid      = $('partner-grid');
 
 // Flight modal
@@ -168,18 +165,16 @@ function getRangeLabel(flights) {
 
 function renderDashboard() {
   if (!allFlights.length) {
-    [statHobbs, statFlights, statLandings, statCycles, statCurrentHobbs]
-      .forEach(el => el.textContent = '—');
+    [statHobbs, statFlights].forEach(el => { if (el) el.textContent = '—'; });
     $('stat-hobbs-period').textContent = '';
     $('range-label').textContent = '';
     partnerGrid.innerHTML = '';
     return;
   }
 
-  // Current Hobbs always comes from the most recent flight — it's the odometer
+  // Sort to find the most recent flight
   const sorted = [...allFlights].sort((a, b) => a.flightNum - b.flightNum);
   const last   = sorted[sorted.length - 1];
-  statCurrentHobbs.textContent = last.hobbsEnd.toFixed(1);
 
   // All other stats use the date-filtered set
   const flights = getDashFlights();
@@ -194,8 +189,6 @@ function renderDashboard() {
 
   statHobbs.textContent    = hobbsFlown.toFixed(1) + ' h';
   statFlights.textContent  = flights.length;
-  statLandings.textContent = totalLandings;
-  statCycles.textContent   = totalCycles;
 
   // Update collapsed-summary pills
   const pillHours    = $('pill-hours-val');
