@@ -6,6 +6,48 @@
 
 const RL_MAX_ROWS = 200;
 
+// ── Airport notes (Google Sheets-backed, in-memory cache) ────────────────────
+let _apNotesCache = {};      // { CODE: { note, author, updated } }
+let _apNotesCacheLoaded = false;
+
+async function loadAirportNotesCache() {
+  try {
+    const rows = await Sheets.fetchAllAirportNotes();
+    _apNotesCache = {};
+    rows.forEach(r => { _apNotesCache[r.code] = r; });
+    _apNotesCacheLoaded = true;
+  } catch (e) {
+    console.warn('Could not load airport notes:', e);
+  }
+}
+
+function getCachedAirportNote(code) {
+  const entry = _apNotesCache[code.toUpperCase()];
+  return entry ? entry.note : '';
+}
+
+function getCachedAirportNoteAuthor(code) {
+  const entry = _apNotesCache[code.toUpperCase()];
+  return entry ? entry.author : '';
+}
+
+async function saveAirportNote(code, text) {
+  const upperCode = code.toUpperCase();
+  // Get current user email for author attribution
+  let author = '';
+  try {
+    const token = await Auth.ensureToken();
+    const res   = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (res.ok) { const info = await res.json(); author = info.email || ''; }
+  } catch { /* ignore — author will be blank */ }
+
+  await Sheets.upsertAirportNote({ code: upperCode, author, note: text });
+  // Update local cache
+  _apNotesCache[upperCode] = { code: upperCode, author, note: text, updated: new Date().toISOString() };
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let rlQuery      = '';
 let rlDetailCode = null;   // null = list view; airport code string = detail view
@@ -18,6 +60,8 @@ function openRangeLookup() {
   renderRange();
   $('range-modal').style.display = 'flex';
   setTimeout(() => $('range-search').focus(), 50);
+  // Load airport notes from Sheets (background, non-blocking)
+  if (!_apNotesCacheLoaded) loadAirportNotesCache();
 }
 
 function closeRangeLookup() {
@@ -152,13 +196,40 @@ function renderRangeDetail(code) {
 
       <div class="rl-detail-section">
         <h3 class="rl-section-label">Partner Notes</h3>
-        <p class="rl-notes-placeholder">No notes yet — notes from partners will appear here.</p>
+        <textarea class="rl-notes-textarea" id="rl-notes-input"
+                  placeholder="Add notes about FBOs, fees, tips…"
+                  rows="3">${esc(getCachedAirportNote(ap.code))}</textarea>
+        <span class="rl-notes-status" id="rl-notes-status"></span>
       </div>
     </div>
   `;
 
   $('rl-back-btn').addEventListener('click', () => { rlDetailCode = null; renderRange(); });
   $('rl-copy-btn').addEventListener('click',  e => copyAirportCode(ap.code, e.currentTarget));
+
+  // Auto-save notes to Google Sheets on input (debounced)
+  let noteTimer = null;
+  const notesInput  = $('rl-notes-input');
+  const notesStatus = $('rl-notes-status');
+  notesInput.addEventListener('input', () => {
+    clearTimeout(noteTimer);
+    notesStatus.textContent = '';
+    notesStatus.className   = 'rl-notes-status';
+    noteTimer = setTimeout(async () => {
+      notesStatus.textContent = 'Saving…';
+      notesStatus.className   = 'rl-notes-status rl-notes-saving';
+      try {
+        await saveAirportNote(ap.code, notesInput.value);
+        notesStatus.textContent = 'Saved';
+        notesStatus.className   = 'rl-notes-status rl-notes-saved visible';
+        setTimeout(() => { notesStatus.textContent = ''; notesStatus.className = 'rl-notes-status'; }, 2000);
+      } catch (e) {
+        console.error('Failed to save airport note:', e);
+        notesStatus.textContent = 'Save failed — try again';
+        notesStatus.className   = 'rl-notes-status rl-notes-error';
+      }
+    }, 800);
+  });
 }
 
 // ── Copy helper ───────────────────────────────────────────────────────────────

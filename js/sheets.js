@@ -432,10 +432,75 @@ const Sheets = (() => {
     ];
   }
 
+  // ── Airport Notes ──────────────────────────────────────────────────────
+
+  // Column layout: A=Code  B=Author  C=Note  D=Updated
+  const AP_NOTES_HEADERS = ['Code', 'Author', 'Note', 'Updated'];
+  function apNotesSheetName() { return Config.get('apNotesSheetName') || 'Airport Notes'; }
+  function apRange(r)         { return `${apNotesSheetName()}!${r}`; }
+
+  async function ensureApNotesHeaders() {
+    const data = await apiFetch(`/values/${encodeURIComponent(apRange('A1:D1'))}`);
+    if (!((data.values || [])[0] || []).length) {
+      await apiFetch(`/values/${encodeURIComponent(apRange('A1:D1'))}?valueInputOption=RAW`, {
+        method: 'PUT', body: JSON.stringify({ values: [AP_NOTES_HEADERS] }),
+      });
+    }
+  }
+
+  async function fetchAllAirportNotes() {
+    await ensureApNotesHeaders();
+    const data = await apiFetch(`/values/${encodeURIComponent(apRange('A2:D'))}`);
+    return (data.values || [])
+      .map((r, i) => ({
+        _row:    i + 2,
+        code:    (r[0] || '').toUpperCase().trim(),
+        author:  (r[1] || '').trim(),
+        note:    (r[2] || '').trim(),
+        updated: (r[3] || '').trim(),
+      }))
+      .filter(n => n.code);
+  }
+
+  /**
+   * Insert or update an airport note. If a row with the same code exists, update it;
+   * otherwise append a new row.
+   */
+  async function upsertAirportNote(note) {
+    await ensureApNotesHeaders();
+    const row = [
+      (note.code || '').toUpperCase().trim(),
+      note.author  || '',
+      note.note    || '',
+      new Date().toISOString(),
+    ];
+
+    // Check if a row for this code already exists
+    const existing = await apiFetch(`/values/${encodeURIComponent(apRange('A2:A'))}`);
+    const codes = (existing.values || []).map(r => (r[0] || '').toUpperCase().trim());
+    const idx   = codes.indexOf(row[0]);
+
+    if (idx >= 0) {
+      // Update existing row
+      const sheetRow = idx + 2;
+      await apiFetch(
+        `/values/${encodeURIComponent(apRange(`A${sheetRow}:D${sheetRow}`))}?valueInputOption=USER_ENTERED`,
+        { method: 'PUT', body: JSON.stringify({ values: [row] }) }
+      );
+    } else {
+      // Append new row
+      await apiFetch(
+        `/values/${encodeURIComponent(apRange('A:D'))}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+        { method: 'POST', body: JSON.stringify({ values: [row] }) }
+      );
+    }
+  }
+
   return {
     fetchAll, appendFlight, updateFlight, deleteFlight,
     fetchAllContacts, appendContact, updateContact, deleteContact,
     fetchAllPassengers, appendPassenger, updatePassenger, deletePassenger,
     fetchAllNotes, appendNote, updateNote, deleteNote,
+    fetchAllAirportNotes, upsertAirportNote,
   };
 })();

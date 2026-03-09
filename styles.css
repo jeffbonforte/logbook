@@ -1470,6 +1470,33 @@ html[data-theme="light"] .rl-detail-code-badge {
   border: 1px dashed var(--border);
   border-radius: var(--radius);
 }
+.rl-notes-textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  font-size: .875rem;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  resize: vertical;
+  outline: none;
+  transition: border-color .15s;
+}
+.rl-notes-textarea:focus { border-color: var(--primary); }
+.rl-notes-textarea::placeholder { color: var(--text3); }
+.rl-notes-status {
+  display: inline-block;
+  font-size: .75rem;
+  margin-top: 4px;
+  min-height: 1.2em;
+  transition: opacity .2s;
+}
+.rl-notes-saving { color: var(--text3); }
+.rl-notes-saved  { color: var(--success); opacity: 0; }
+.rl-notes-saved.visible { opacity: 1; }
+.rl-notes-error  { color: var(--danger); }
 
 /* Copy success flash */
 .rl-copied {
