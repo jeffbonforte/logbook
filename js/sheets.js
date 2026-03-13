@@ -156,7 +156,7 @@ const Sheets = (() => {
       cycles:     parseInt(row[7], 10) || 0,
       partner:    (row[8]  || '').trim(),   // Column I — Operator (raw key, e.g. "Quake")
       pilot:      (row[9]  || '').trim(),   // Column J — Pilot (full name, e.g. "Ben Hochman")
-      flt:        parseFloat(row[10]) || 0, // Column K — FLT (authoritative flight time)
+      flt:        Math.max(0, parseFloat(row[10]) || 0), // Column K — FLT (authoritative flight time)
       purpose:    (row[11] || '').trim(),   // Column L — Flight Type
     };
   }
